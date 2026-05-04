@@ -10,6 +10,16 @@ export type AgentRole =
 
 export type AgentStatus = "idle" | "thinking" | "working" | "done" | "flagged";
 
+export type Grade =
+  | "A+"
+  | "A"
+  | "A-"
+  | "B+"
+  | "B"
+  | "B-"
+  | "C"
+  | "D";
+
 export interface Agent {
   id: string;
   name: string;
@@ -20,6 +30,11 @@ export interface Agent {
   description: string;
   status: AgentStatus;
   custom?: boolean;
+  skill: number;
+  runs: number;
+  recentGrades: Grade[];
+  bestGrade?: Grade;
+  averageScore: number;
 }
 
 export type TaskStatus = "queued" | "in_progress" | "done" | "flagged";
@@ -40,6 +55,8 @@ export interface Message {
   text: string;
   ts: number;
   kind: "say" | "handoff" | "review" | "suggest";
+  grade?: Grade;
+  score?: number;
 }
 
 export interface Suggestion {
@@ -56,4 +73,22 @@ export interface OfficeState {
   messages: Message[];
   suggestions: Suggestion[];
   progress: number;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  goal: string;
+  messages: Message[];
+  tasks: Task[];
+  suggestions: Suggestion[];
+  progress: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PersistedState {
+  agents: Agent[];
+  conversations: Conversation[];
+  activeId: string | null;
 }

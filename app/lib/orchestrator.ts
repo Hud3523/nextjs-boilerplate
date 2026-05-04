@@ -1,14 +1,16 @@
-import type { Agent, AgentRole, Message, Suggestion, Task } from "./types";
-import { planSteps, speak, suggesterPing } from "./mockBrain";
+import type { Agent, AgentRole, Grade, Message, Suggestion, Task } from "./types";
+import { applyLearning, gradeOutput, planSteps, speak, suggesterPing } from "./mockBrain";
 
 export interface RunCallbacks {
   setAgentStatus: (id: string, status: Agent["status"]) => void;
+  applyAgentLearning: (id: string, grade: Grade, score: number) => void;
   addMessage: (msg: Message) => void;
   addTask: (task: Task) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
   addSuggestion: (s: Suggestion) => void;
   setProgress: (p: number) => void;
   isCancelled: () => boolean;
+  getAgent: (id: string) => Agent | undefined;
 }
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -41,24 +43,30 @@ export async function runOffice(
     };
     cb.addTask(task);
 
-    await wait(350);
+    await wait(300);
     if (cb.isCancelled()) return;
 
     cb.setAgentStatus(agent.id, "thinking");
     cb.updateTask(task.id, { status: "in_progress" });
-    await wait(700);
+    await wait(650);
     if (cb.isCancelled()) return;
 
     cb.setAgentStatus(agent.id, "working");
-    const text = speak(agent.role, goal);
+    const live = cb.getAgent(agent.id) || agent;
+    const text = speak(agent.role, goal, live.skill);
+    const { grade, score } = gradeOutput(live.skill);
+    cb.applyAgentLearning(agent.id, grade, score);
+
     cb.addMessage({
       id: newId("msg"),
       agentId: agent.id,
       text,
       ts: Date.now(),
       kind: agent.role === "reviewer" ? "review" : "say",
+      grade,
+      score,
     });
-    await wait(900);
+    await wait(800);
     if (cb.isCancelled()) return;
 
     cb.updateTask(task.id, { status: "done", output: text });
@@ -67,8 +75,10 @@ export async function runOffice(
 
     if ((i === 1 || i === 4) && byRole("suggester")) {
       const s = byRole("suggester")!;
+      const liveSage = cb.getAgent(s.id) || s;
+      const tier = liveSage.skill >= 75 ? "ace" : liveSage.skill >= 50 ? "solid" : "rookie";
       cb.setAgentStatus(s.id, "working");
-      const ping = suggesterPing(goal);
+      const ping = suggesterPing(goal, tier);
       cb.addMessage({
         id: newId("msg"),
         agentId: s.id,
@@ -77,12 +87,38 @@ export async function runOffice(
         kind: "suggest",
       });
       cb.addSuggestion({ id: newId("sg"), text: ping, ts: Date.now() });
-      await wait(500);
+      await wait(450);
       cb.setAgentStatus(s.id, "idle");
     }
 
-    await wait(250);
+    await wait(220);
   }
 
   agents.forEach((a) => cb.setAgentStatus(a.id, "idle"));
+}
+
+export function learn(agent: Agent, grade: Grade, score: number): Agent {
+  const nextSkill = applyLearning(agent.skill, score);
+  const nextGrades = [...agent.recentGrades, grade].slice(-8);
+  const nextRuns = agent.runs + 1;
+  const totalScore = agent.averageScore * agent.runs + score;
+  const avg = totalScore / nextRuns;
+  const best = bestGrade(agent.bestGrade, grade);
+  return {
+    ...agent,
+    skill: nextSkill,
+    runs: nextRuns,
+    recentGrades: nextGrades,
+    averageScore: Math.round(avg * 10) / 10,
+    bestGrade: best,
+  };
+}
+
+const GRADE_RANK: Record<Grade, number> = {
+  "A+": 8, "A": 7, "A-": 6, "B+": 5, "B": 4, "B-": 3, "C": 2, "D": 1,
+};
+
+function bestGrade(prev: Grade | undefined, next: Grade): Grade {
+  if (!prev) return next;
+  return GRADE_RANK[next] > GRADE_RANK[prev] ? next : prev;
 }

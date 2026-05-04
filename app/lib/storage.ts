@@ -1,0 +1,83 @@
+import type { Agent, Conversation, PersistedState } from "./types";
+import { DEFAULT_AGENTS } from "./agents";
+
+const STORAGE_KEY = "ai-office:v1";
+
+export function loadState(): PersistedState {
+  if (typeof window === "undefined") {
+    return { agents: DEFAULT_AGENTS, conversations: [], activeId: null };
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { agents: DEFAULT_AGENTS, conversations: [], activeId: null };
+    const parsed = JSON.parse(raw) as PersistedState;
+    const agents = mergeAgents(parsed.agents || []);
+    return {
+      agents,
+      conversations: (parsed.conversations || []).map(normalizeConvo),
+      activeId: parsed.activeId ?? null,
+    };
+  } catch {
+    return { agents: DEFAULT_AGENTS, conversations: [], activeId: null };
+  }
+}
+
+export function saveState(state: PersistedState) {
+  if (typeof window === "undefined") return;
+  try {
+    const sanitized: PersistedState = {
+      ...state,
+      agents: state.agents.map((a) => ({ ...a, status: "idle" as const })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+  } catch {
+    /* quota or serialization error — ignore */
+  }
+}
+
+function mergeAgents(stored: Agent[]): Agent[] {
+  const byId = new Map(stored.map((a) => [a.id, a]));
+  const merged: Agent[] = DEFAULT_AGENTS.map(
+    (def) => ({ ...def, ...(byId.get(def.id) || {}), status: "idle" as const }),
+  );
+  for (const a of stored) {
+    if (a.custom && !merged.find((m) => m.id === a.id)) {
+      merged.push({ ...a, status: "idle" });
+    }
+  }
+  return merged;
+}
+
+function normalizeConvo(c: Conversation): Conversation {
+  return {
+    id: c.id,
+    title: c.title || "Untitled",
+    goal: c.goal || "",
+    messages: c.messages || [],
+    tasks: c.tasks || [],
+    suggestions: c.suggestions || [],
+    progress: c.progress ?? 0,
+    createdAt: c.createdAt || Date.now(),
+    updatedAt: c.updatedAt || Date.now(),
+  };
+}
+
+export function newConversation(goal = ""): Conversation {
+  const now = Date.now();
+  return {
+    id: `c-${now}-${Math.random().toString(36).slice(2, 7)}`,
+    title: goal ? truncateTitle(goal) : "New chat",
+    goal,
+    messages: [],
+    tasks: [],
+    suggestions: [],
+    progress: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function truncateTitle(s: string, n = 42) {
+  const t = s.trim().replace(/\s+/g, " ");
+  return t.length > n ? t.slice(0, n - 1) + "…" : t;
+}

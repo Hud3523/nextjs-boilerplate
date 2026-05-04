@@ -1,5 +1,13 @@
 import type { Agent } from "./types";
 
+const baseStats = {
+  status: "idle" as const,
+  skill: 35,
+  runs: 0,
+  recentGrades: [] as Agent["recentGrades"],
+  averageScore: 0,
+};
+
 export const DEFAULT_AGENTS: Agent[] = [
   {
     id: "planner",
@@ -9,7 +17,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#60a5fa",
     desk: { x: 12, y: 22 },
     description: "Breaks the goal into ordered, doable steps.",
-    status: "idle",
+    ...baseStats,
   },
   {
     id: "manager",
@@ -19,7 +27,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#f59e0b",
     desk: { x: 38, y: 18 },
     description: "Assigns each step to the right agent and tracks progress.",
-    status: "idle",
+    ...baseStats,
   },
   {
     id: "prompter",
@@ -29,7 +37,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#a78bfa",
     desk: { x: 64, y: 22 },
     description: "Writes the precise instructions other agents need.",
-    status: "idle",
+    ...baseStats,
   },
   {
     id: "developer",
@@ -39,7 +47,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#34d399",
     desk: { x: 14, y: 58 },
     description: "Does the actual work — drafts, builds, produces output.",
-    status: "idle",
+    ...baseStats,
   },
   {
     id: "reviewer",
@@ -49,7 +57,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#f472b6",
     desk: { x: 40, y: 62 },
     description: "Looks over the work, flags issues, suggests fixes.",
-    status: "idle",
+    ...baseStats,
   },
   {
     id: "suggester",
@@ -59,7 +67,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#fbbf24",
     desk: { x: 66, y: 58 },
     description: "Pings you with ideas and money-making opportunities.",
-    status: "idle",
+    ...baseStats,
   },
   {
     id: "agentmaker",
@@ -69,7 +77,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     color: "#22d3ee",
     desk: { x: 86, y: 40 },
     description: "Hires new agents — tell him what you need and he builds them.",
-    status: "idle",
+    ...baseStats,
   },
 ];
 
@@ -88,8 +96,8 @@ export function makeCustomAgent(input: {
     color,
     desk: randomDesk(),
     description: input.job,
-    status: "idle",
     custom: true,
+    ...baseStats,
   };
 }
 
