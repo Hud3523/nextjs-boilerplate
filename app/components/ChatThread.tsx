@@ -11,6 +11,7 @@ interface Props {
   running: boolean;
   empty: boolean;
   onSampleClick: (s: string) => void;
+  onRetry: (agentId: string) => void;
 }
 
 const SAMPLE_GOALS = [
@@ -28,6 +29,7 @@ export default function ChatThread({
   running,
   empty,
   onSampleClick,
+  onRetry,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const findAgent = (id: string) => agents.find((a) => a.id === id);
@@ -103,6 +105,9 @@ export default function ChatThread({
                 </span>
                 <span className="agent-turn-role">{a.role}</span>
                 {it.kind === "review" && <span className="badge">review</span>}
+                {"retry" in it && it.retry && (
+                  <span className="badge retry">retry</span>
+                )}
                 {"grade" in it && it.grade && (
                   <span
                     className={`grade-pill grade-${it.grade.replace("+", "plus").replace("-", "minus")}`}
@@ -113,6 +118,17 @@ export default function ChatThread({
                 )}
               </div>
               <p className="agent-turn-text">{it.text}</p>
+              {a.role !== "agentmaker" && (
+                <button
+                  type="button"
+                  className="retry-btn"
+                  disabled={running}
+                  onClick={() => onRetry(a.id)}
+                  title="Have this agent try again to beat their grade"
+                >
+                  ↻ Try again
+                </button>
+              )}
             </div>
           </div>
         );

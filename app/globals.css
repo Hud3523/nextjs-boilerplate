@@ -204,11 +204,24 @@ body {
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 .sidebar-action:hover {
   border-color: #22d3ee;
   color: #67e8f9;
   background: rgba(34, 211, 238, 0.08);
+}
+.sidebar-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--muted);
 }
 .sidebar-meta {
   font-size: 10px;
@@ -242,14 +255,36 @@ body {
   font-size: 14px;
 }
 .header-icon-btn:hover { border-color: var(--accent); }
-.header-title { display: flex; flex-direction: column; }
+.header-title { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .header-title-main {
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .header-title-sub {
   font-size: 11px;
   color: var(--muted-2);
+}
+.header-action {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--foreground);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.header-action:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.header-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ================= Office strip ================= */
@@ -625,11 +660,36 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+.badge.retry {
+  background: rgba(34, 211, 238, 0.2);
+  color: #67e8f9;
+}
 .agent-turn-text {
   font-size: 14px;
   line-height: 1.55;
   color: #e4e4e7;
   white-space: pre-line;
+}
+.retry-btn {
+  margin-top: 6px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0;
+}
+.agent-turn:hover .retry-btn { opacity: 1; }
+.retry-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.retry-btn:disabled { cursor: not-allowed; opacity: 0; }
+@media (hover: none) {
+  .retry-btn { opacity: 1; }
 }
 
 .suggest-bubble {
@@ -754,6 +814,76 @@ body {
 
 /* ================= Modal ================= */
 /* AgentMakerModal uses inline tailwind already; ensure it sits above everything */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.modal-emoji { font-size: 28px; }
+.modal-head h2 { font-size: 16px; font-weight: 600; }
+.modal-head p { font-size: 12px; color: var(--muted-2); }
+.modal-x {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.modal-x:hover { background: rgba(255,255,255,0.05); color: white; }
+
+.achv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 560px) {
+  .achv-grid { grid-template-columns: 1fr; }
+}
+.achv-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0,0,0,0.2);
+  transition: all 0.15s;
+}
+.achv-card.on {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.06);
+}
+.achv-card.off { opacity: 0.5; }
+.achv-icon { font-size: 22px; line-height: 1.2; }
+.achv-title { font-size: 13px; font-weight: 600; }
+.achv-card.on .achv-title { color: #fcd34d; }
+.achv-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
 /* ================= Animations ================= */
 @keyframes bobLight {

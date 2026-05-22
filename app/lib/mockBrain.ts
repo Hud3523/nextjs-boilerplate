@@ -3,19 +3,36 @@ import type { Agent, Grade } from "./types";
 export interface PlanStep {
   title: string;
   ownerRole: Agent["role"];
+  ownerId?: string;
 }
 
-export function planSteps(goal: string): PlanStep[] {
+export function planSteps(goal: string, agents: Agent[] = []): PlanStep[] {
   const g = goal.trim() || "your project";
-  return [
+  const customAgents = agents.filter((a) => a.role === "custom");
+
+  const steps: PlanStep[] = [
     { title: `Clarify the goal: "${truncate(g, 60)}"`, ownerRole: "planner" },
     { title: "Break the goal into milestones", ownerRole: "planner" },
     { title: "Assign owners to each milestone", ownerRole: "manager" },
     { title: "Write working prompts/specs", ownerRole: "prompter" },
     { title: "Produce the first draft / build", ownerRole: "developer" },
+  ];
+
+  // Hired specialists each take a task tailored to their job.
+  for (const a of customAgents) {
+    steps.push({
+      title: `${a.name}: ${truncate(a.description, 50)}`,
+      ownerRole: "custom",
+      ownerId: a.id,
+    });
+  }
+
+  steps.push(
     { title: "Review & polish the output", ownerRole: "reviewer" },
     { title: "Surface ideas & next moves", ownerRole: "suggester" },
-  ];
+  );
+
+  return steps;
 }
 
 type SkillTier = "rookie" | "solid" | "ace";
@@ -50,8 +67,71 @@ export function speak(
     case "agentmaker":
       return `New hire onboarded. Desk assigned, role briefed, they're ready to take work.`;
     case "custom":
-      return `On it — ${ctx || "doing my part"}. Aiming to nail it on the first try.`;
+      return customOutput(g, tier, ctx);
   }
+}
+
+function customOutput(goal: string, tier: SkillTier, job = ""): string {
+  const j = job.toLowerCase();
+  const ace = tier === "ace";
+
+  if (j.includes("sell") || j.includes("sales") || j.includes("dropship")) {
+    return [
+      `💰 Sales push for "${truncate(goal, 40)}":`,
+      `• Picked 3 products with strong margin + low return risk`,
+      `• Wrote benefit-led titles + 5-bullet descriptions`,
+      ace ? `• Set price ladder ($9/$19/$39) + a 2-pack upsell` : `• Suggested a starting price`,
+      ace ? `• Drafted 3 cold DMs + 1 follow-up for outreach` : `• Noted where to list them`,
+    ].join("\n");
+  }
+  if (j.includes("market") || j.includes("ad") || j.includes("growth")) {
+    return [
+      `📣 Marketing plan:`,
+      `• Channel: pick the one where buyers already hang out`,
+      `• Hook: lead with the outcome, not the product`,
+      ace ? `• 7-day $10/day test plan with a clear kill metric` : `• A simple first ad idea`,
+      ace ? `• UTM tags so every click is tracked from day one` : ``,
+    ].filter(Boolean).join("\n");
+  }
+  if (j.includes("design") || j.includes("art") || j.includes("logo")) {
+    return [
+      `🎨 Design pass:`,
+      `• 3 concept directions (bold / clean / playful)`,
+      `• Color + type pairing that reads on mobile`,
+      ace ? `• Export-ready specs + a simple brand mini-guide` : `• Rough mockup notes`,
+    ].join("\n");
+  }
+  if (j.includes("research") || j.includes("find") || j.includes("niche")) {
+    return [
+      `🔬 Research findings:`,
+      `• 3 promising angles with demand signals`,
+      `• 1 underserved sub-niche worth owning`,
+      ace ? `• Competitor gaps + a wedge to enter on` : `• A few competitors to watch`,
+    ].join("\n");
+  }
+  if (j.includes("social") || j.includes("post") || j.includes("content")) {
+    return [
+      `📱 Content batch:`,
+      `• 5 post hooks from one core idea`,
+      `• Best-time-to-post note per platform`,
+      ace ? `• A 7-day calendar + 1 reusable template` : `• A simple posting cadence`,
+    ].join("\n");
+  }
+  if (j.includes("support") || j.includes("help") || j.includes("service")) {
+    return [
+      `🎧 Support kit:`,
+      `• 5 canned replies for common questions`,
+      `• A friendly refund/late-order script`,
+      ace ? `• An escalation path + tone guide` : `• Notes on tone`,
+    ].join("\n");
+  }
+  // Generic specialist
+  return [
+    `On it — ${job || "doing my part"}:`,
+    `• Broke the job into a clear deliverable`,
+    `• Produced a first version, ready for review`,
+    ace ? `• Tightened it and double-checked the details` : ``,
+  ].filter(Boolean).join("\n");
 }
 
 function plannerOutput(g: string, tier: SkillTier): string {

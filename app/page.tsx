@@ -7,9 +7,18 @@ import ChatThread from "./components/ChatThread";
 import InputBar from "./components/InputBar";
 import AgentMakerModal from "./components/AgentMakerModal";
 import AgentDetailPanel from "./components/AgentDetailPanel";
+import AchievementsModal from "./components/AchievementsModal";
 import { DEFAULT_AGENTS, makeCustomAgent } from "./lib/agents";
-import { learn, runOffice } from "./lib/orchestrator";
-import { loadState, newConversation, saveState, truncateTitle } from "./lib/storage";
+import { learn, retryAgent, runOffice } from "./lib/orchestrator";
+import { computeAchievements, unlockedCount } from "./lib/achievements";
+import {
+  conversationToMarkdown,
+  downloadMarkdown,
+  loadState,
+  newConversation,
+  saveState,
+  truncateTitle,
+} from "./lib/storage";
 import type {
   Agent,
   Conversation,
@@ -26,6 +35,7 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [makerOpen, setMakerOpen] = useState(false);
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [draft, setDraft] = useState("");
@@ -195,6 +205,45 @@ export default function Home() {
     if (selectedAgent === id) setSelectedAgent("");
   };
 
+  const handleRetry = useCallback(
+    async (agentId: string) => {
+      const convoId = activeId;
+      const cur = conversations.find((c) => c.id === convoId);
+      if (!convoId || !cur || running) return;
+      const retryGoal = cur.goal;
+
+      cancelRef.current = false;
+      setRunning(true);
+
+      await retryAgent(agentId, retryGoal, {
+        setAgentStatus,
+        applyAgentLearning,
+        addMessage: (m) =>
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === convoId
+                ? { ...c, messages: [...c.messages, m], updatedAt: Date.now() }
+                : c,
+            ),
+          ),
+        getAgent: (id) => agentsRef.current.find((a) => a.id === id),
+        isCancelled: () => cancelRef.current,
+      });
+
+      setRunning(false);
+    },
+    [activeId, conversations, running, setAgentStatus, applyAgentLearning],
+  );
+
+  const handleExport = () => {
+    if (!active || active.messages.length === 0) return;
+    const md = conversationToMarkdown(active, agents);
+    const safe = (active.title || "conversation").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    downloadMarkdown(`ai-office-${safe}.md`, md);
+  };
+
+  const achievements = computeAchievements(agents, conversations);
+
   const messages: Message[] = active?.messages || [];
   const suggestions: Suggestion[] = active?.suggestions || [];
   const tasks: Task[] = active?.tasks || [];
@@ -213,6 +262,9 @@ export default function Home() {
         onNewChat={handleNewChat}
         onDelete={handleDeleteConvo}
         onHire={() => setMakerOpen(true)}
+        onAchievements={() => setAchievementsOpen(true)}
+        achievementsUnlocked={unlockedCount(achievements)}
+        achievementsTotal={achievements.length}
         agentCount={agents.length}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -236,6 +288,15 @@ export default function Home() {
               {agents.length} agents · {running ? "🟢 working" : "⚪ idle"} · {tasks.length} tasks
             </span>
           </div>
+          <button
+            type="button"
+            className="header-action"
+            onClick={handleExport}
+            disabled={!active || active.messages.length === 0}
+            title="Export this conversation as Markdown"
+          >
+            ⬇ Export
+          </button>
         </header>
 
         <OfficeStrip
@@ -262,6 +323,7 @@ export default function Home() {
           running={running}
           empty={empty}
           onSampleClick={(s) => setDraft(s)}
+          onRetry={handleRetry}
         />
 
         <InputBar
@@ -283,6 +345,12 @@ export default function Home() {
         open={makerOpen}
         onClose={() => setMakerOpen(false)}
         onCreate={handleCreateAgent}
+      />
+
+      <AchievementsModal
+        open={achievementsOpen}
+        onClose={() => setAchievementsOpen(false)}
+        achievements={achievements}
       />
     </div>
   );

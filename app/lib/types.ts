@@ -57,6 +57,7 @@ export interface Message {
   kind: "say" | "handoff" | "review" | "suggest";
   grade?: Grade;
   score?: number;
+  retry?: boolean;
 }
 
 export interface Suggestion {

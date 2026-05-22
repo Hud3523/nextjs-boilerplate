@@ -9,6 +9,9 @@ interface Props {
   onNewChat: () => void;
   onDelete: (id: string) => void;
   onHire: () => void;
+  onAchievements: () => void;
+  achievementsUnlocked: number;
+  achievementsTotal: number;
   agentCount: number;
   open: boolean;
   onClose: () => void;
@@ -21,6 +24,9 @@ export default function Sidebar({
   onNewChat,
   onDelete,
   onHire,
+  onAchievements,
+  achievementsUnlocked,
+  achievementsTotal,
   agentCount,
   open,
   onClose,
@@ -86,6 +92,12 @@ export default function Sidebar({
         <div className="sidebar-footer">
           <button type="button" className="sidebar-action" onClick={onHire}>
             🧬 Hire agent
+          </button>
+          <button type="button" className="sidebar-action" onClick={onAchievements}>
+            🏆 Achievements
+            <span className="sidebar-badge">
+              {achievementsUnlocked}/{achievementsTotal}
+            </span>
           </button>
           <p className="sidebar-meta">
             {agentCount} agents · mock mode

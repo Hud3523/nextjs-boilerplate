@@ -23,7 +23,7 @@ export async function runOffice(
   agents: Agent[],
   cb: RunCallbacks,
 ) {
-  const steps = planSteps(goal);
+  const steps = planSteps(goal, agents);
   const totalSteps = steps.length;
 
   const byRole = (role: AgentRole) => agents.find((a) => a.role === role);
@@ -31,7 +31,9 @@ export async function runOffice(
   for (let i = 0; i < steps.length; i++) {
     if (cb.isCancelled()) return;
     const step = steps[i];
-    const agent = byRole(step.ownerRole);
+    const agent = step.ownerId
+      ? agents.find((a) => a.id === step.ownerId)
+      : byRole(step.ownerRole);
     if (!agent) continue;
 
     const task: Task = {
@@ -53,7 +55,8 @@ export async function runOffice(
 
     cb.setAgentStatus(agent.id, "working");
     const live = cb.getAgent(agent.id) || agent;
-    const text = speak(agent.role, goal, live.skill);
+    const ctx = agent.role === "custom" ? agent.description : undefined;
+    const text = speak(agent.role, goal, live.skill, ctx);
     const { grade, score } = gradeOutput(live.skill);
     cb.applyAgentLearning(agent.id, grade, score);
 
@@ -95,6 +98,47 @@ export async function runOffice(
   }
 
   agents.forEach((a) => cb.setAgentStatus(a.id, "idle"));
+}
+
+export interface RetryCallbacks {
+  setAgentStatus: (id: string, status: Agent["status"]) => void;
+  applyAgentLearning: (id: string, grade: Grade, score: number) => void;
+  addMessage: (msg: Message) => void;
+  getAgent: (id: string) => Agent | undefined;
+  isCancelled: () => boolean;
+}
+
+export async function retryAgent(
+  agentId: string,
+  goal: string,
+  cb: RetryCallbacks,
+) {
+  const agent = cb.getAgent(agentId);
+  if (!agent) return;
+
+  cb.setAgentStatus(agent.id, "thinking");
+  await wait(500);
+  if (cb.isCancelled()) return;
+
+  cb.setAgentStatus(agent.id, "working");
+  const live = cb.getAgent(agent.id) || agent;
+  const ctx = agent.role === "custom" ? agent.description : undefined;
+  const text = speak(agent.role, goal, live.skill, ctx);
+  const { grade, score } = gradeOutput(live.skill);
+  cb.applyAgentLearning(agent.id, grade, score);
+
+  cb.addMessage({
+    id: newId("msg"),
+    agentId: agent.id,
+    text,
+    ts: Date.now(),
+    kind: agent.role === "reviewer" ? "review" : "say",
+    grade,
+    score,
+    retry: true,
+  });
+  await wait(400);
+  cb.setAgentStatus(agent.id, "idle");
 }
 
 export function learn(agent: Agent, grade: Grade, score: number): Agent {
