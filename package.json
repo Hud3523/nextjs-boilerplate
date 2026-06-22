@@ -1,26 +1,19 @@
 {
-  "name": "nextjs",
+  "name": "mission-control",
   "version": "0.1.0",
   "private": true,
+  "description": "MISSION CONTROL — Autonomous AI Agency Command Center",
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.1.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "dev": "concurrently -k -n server,client -c magenta,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "seed": "npm run seed -w server"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "concurrently": "^9.1.0"
   }
 }

@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* ── MISSION CONTROL theme ─────────────────────────────────────────────── */
+@theme {
+  --color-void: #05060f;
+  --color-deep: #0a0c1c;
+  --color-panel: #0e1330;
+  --color-magenta: #ff2bd6;
+  --color-cyan: #22e6ff;
+  --color-violet: #8b5cff;
+  --color-amber: #ffb020;
+  --color-jade: #21f3a3;
+  --color-danger: #ff3b5c;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: radial-gradient(1200px 800px at 70% -10%, #161a45 0%, #05060f 55%), #05060f;
+  color: #d7e0ff;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+/* Faint grid + scanlines overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(34, 230, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px, 44px 44px;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 2px, transparent 3px);
+  opacity: 0.35;
+}
+
+.font-mono { font-family: var(--font-mono); }
+
+/* Neon helpers */
+.neon-border { box-shadow: 0 0 0 1px rgba(34,230,255,0.25), 0 0 18px rgba(34,230,255,0.12) inset; }
+.glow-cyan { box-shadow: 0 0 14px rgba(34,230,255,0.55), 0 0 4px rgba(34,230,255,0.8); }
+.glow-magenta { box-shadow: 0 0 14px rgba(255,43,214,0.55), 0 0 4px rgba(255,43,214,0.8); }
+.text-glow { text-shadow: 0 0 10px currentColor; }
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(34,230,255,0.35), 0 0 0 1px rgba(34,230,255,0.4) inset; }
+  50% { box-shadow: 0 0 26px rgba(34,230,255,0.85), 0 0 0 1px rgba(34,230,255,0.9) inset; }
+}
+.pulse-active { animation: pulseGlow 1.6s ease-in-out infinite; }
+
+@keyframes sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+.scanner::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(34,230,255,0.22), transparent);
+  animation: sweep 2.4s linear infinite;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(139,92,255,0.4); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+button { cursor: pointer; }
+* { box-sizing: border-box; }
