@@ -111,4 +111,44 @@ export function checkDrawdownBreakers() {
   }
 }
 
+/**
+ * Treasury / P&L summary. Keeps REAL money (actual API spend) and SIMULATED
+ * money (dry-run revenue/spend) strictly separate — guardrail #9, the headline
+ * number stays honest. Per-agency totals are lifetime (season-agnostic).
+ */
+export function treasury() {
+  const q = (type: "revenue" | "spend", sim: 0 | 1, agencyId?: string) => {
+    let sql = "SELECT COALESCE(SUM(amount_usd),0) AS s FROM ledger WHERE type=? AND simulated=?";
+    const args: (string | number)[] = [type, sim];
+    if (agencyId) { sql += " AND agency_id=?"; args.push(agencyId); }
+    return (db.prepare(sql).get(...args) as { s: number }).s;
+  };
+
+  const fund = {
+    realRevenue: q("revenue", 0), simRevenue: q("revenue", 1),
+    realSpend: q("spend", 0), simSpend: q("spend", 1),
+  };
+
+  const agencies = listAgencies({ includeLeague: true }).map((a) => {
+    const realRevenue = q("revenue", 0, a.id), simRevenue = q("revenue", 1, a.id);
+    const realSpend = q("spend", 0, a.id), simSpend = q("spend", 1, a.id);
+    const revenue = realRevenue + simRevenue, spend = realSpend + simSpend;
+    return {
+      id: a.id, name: a.name, isLeague: Boolean(a.is_league), status: a.status, capital: a.capital_usd,
+      realRevenue, simRevenue, realSpend, simSpend, revenue, spend,
+      net: Math.round((revenue - spend) * 100) / 100, roi: spend > 0 ? (revenue - spend) / spend : null,
+    };
+  }).sort((x, y) => y.revenue - x.revenue);
+
+  return {
+    fund: {
+      ...fund,
+      totalRevenue: fund.realRevenue + fund.simRevenue,
+      totalSpend: fund.realSpend + fund.simSpend,
+      net: Math.round((fund.realRevenue + fund.simRevenue - fund.realSpend - fund.simSpend) * 100) / 100,
+    },
+    agencies,
+  };
+}
+
 export { startOfTodayMs };

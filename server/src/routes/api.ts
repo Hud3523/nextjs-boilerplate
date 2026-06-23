@@ -20,7 +20,7 @@ import {
   listAttention, getAttention, resolveAttention, resolveAttentionForTask, raiseAttention,
 } from "../attention.js";
 import {
-  totalRevenue, fundSpend, realSpendToday, cyclesToday, recordLedger, lowCreditWarning,
+  totalRevenue, fundSpend, realSpendToday, cyclesToday, recordLedger, lowCreditWarning, treasury,
 } from "../ledger.js";
 import { listMemory } from "../memory.js";
 import { listBoard } from "../board.js";
@@ -125,6 +125,7 @@ api.get("/state", (_req, res) => {
     seasons: listSeasons(),
     analytics: analytics(),
     briefing: dailyBriefing(),
+    treasury: treasury(),
     stats: stats(),
     settings: settingsView(),
   });
@@ -412,6 +413,7 @@ api.post("/factory/agent", (req, res) => {
 });
 
 // ── league ─────────────────────────────────────────────────────────────────
+api.get("/treasury", (_req, res) => res.json(treasury()));
 api.get("/leaderboard", (_req, res) => res.json(leaderboard()));
 api.get("/league/analytics", (_req, res) => res.json(analytics()));
 api.get("/league/briefing", (_req, res) => res.json(dailyBriefing()));

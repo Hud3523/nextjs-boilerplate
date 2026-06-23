@@ -7,6 +7,7 @@ import { CrewRoster } from "./components/CrewRoster";
 import { ShipView } from "./components/ShipView";
 import { FleetView } from "./components/FleetView";
 import { OrgGraph } from "./components/OrgGraph";
+import { Treasury } from "./components/Treasury";
 import { AttentionQueue } from "./components/AttentionQueue";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { AgentDrawer } from "./components/AgentDrawer";
@@ -14,8 +15,8 @@ import { Commissioner } from "./components/Commissioner";
 import { DirectiveModal } from "./components/DirectiveModal";
 import { cn } from "./lib/ui";
 
-type View = "deck" | "fleet" | "org";
-type MobileTab = "deck" | "fleet" | "org" | "inbox" | "feed";
+type View = "deck" | "fleet" | "treasury" | "org";
+type MobileTab = "deck" | "fleet" | "treasury" | "org" | "inbox" | "feed";
 
 export function App() {
   const { snap, connected, stream, reload } = useMissionControl();
@@ -50,13 +51,14 @@ export function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {mobileTab === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} />}
           {mobileTab === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
+          {mobileTab === "treasury" && <Treasury snap={snap} />}
           {mobileTab === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
           {mobileTab === "inbox" && <AttentionQueue snap={snap} onAct={reload} />}
           {mobileTab === "feed" && <ActivityFeed snap={snap} stream={stream} variant="full" />}
         </div>
         <nav className="shrink-0 flex items-stretch bg-[var(--color-panel)]/90 border-t border-cyan-400/20">
           {([
-            ["deck", "🛸", "Deck"], ["fleet", "🌌", "Fleet"], ["org", "🌳", "Org"],
+            ["deck", "🛸", "Deck"], ["fleet", "🌌", "Fleet"], ["treasury", "💰", "Money"], ["org", "🌳", "Org"],
             ["inbox", "⚡", "Inbox"], ["feed", "📡", "Feed"],
           ] as [MobileTab, string, string][]).map(([t, icon, label]) => (
             <button key={t} onClick={() => setMobileTab(t)}
@@ -85,10 +87,10 @@ export function App() {
       <StatusBar stats={snap.stats} onOpenCommissioner={() => setShowCommissioner(true)} onOpenDirective={() => setShowDirective(true)} />
 
       <div className="flex items-center gap-1 px-4 py-1.5 bg-[var(--color-deep)]/40 border-b border-white/5">
-        {(["deck", "fleet", "org"] as View[]).map((v) => (
+        {(["deck", "fleet", "treasury", "org"] as View[]).map((v) => (
           <button key={v} onClick={() => setView(v)}
             className={cn("font-mono text-[11px] px-3 py-1 rounded", view === v ? "bg-cyan-500/20 text-cyan-200 border border-cyan-400/40" : "text-white/40 hover:text-white/70")}>
-            {v === "deck" ? `🛸 ${agency?.name ?? "Deck"}` : v === "fleet" ? "🌌 Fleet" : "🌳 Org"}
+            {v === "deck" ? `🛸 ${agency?.name ?? "Deck"}` : v === "fleet" ? "🌌 Fleet" : v === "treasury" ? "💰 Money" : "🌳 Org"}
           </button>
         ))}
         {view === "deck" && !agency?.is_league && (
@@ -104,6 +106,7 @@ export function App() {
         {view === "deck" && <CrewRoster agents={deckAgents} title={agency?.name ?? "Crew"} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
         {view === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
         {view === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
+        {view === "treasury" && <Treasury snap={snap} />}
         {view === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
         <AttentionQueue snap={snap} onAct={reload} />
       </div>

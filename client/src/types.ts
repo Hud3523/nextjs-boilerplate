@@ -65,5 +65,18 @@ export interface Snapshot {
   agencies: Agency[]; floors: Floor[]; agents: Agent[]; leaderboard: LeaderEntry[];
   tasks: Task[]; attention: Attention[]; opportunities: Opportunity[]; directives: any[];
   tools: any[]; activity: ActivityRow[]; memory: any[]; reputation: any[]; season: any;
-  seasons: any[]; analytics: any; briefing: any; stats: Stats; settings: any;
+  seasons: any[]; analytics: any; briefing: any; treasury: Treasury; stats: Stats; settings: any;
+}
+
+export interface TreasuryAgency {
+  id: string; name: string; isLeague: boolean; status: string; capital: number;
+  realRevenue: number; simRevenue: number; realSpend: number; simSpend: number;
+  revenue: number; spend: number; net: number; roi: number | null;
+}
+export interface Treasury {
+  fund: {
+    realRevenue: number; simRevenue: number; realSpend: number; simSpend: number;
+    totalRevenue: number; totalSpend: number; net: number;
+  };
+  agencies: TreasuryAgency[];
 }
