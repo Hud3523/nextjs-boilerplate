@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import "tailwindcss";
 
 /* ── MISSION CONTROL theme ─────────────────────────────────────────────── */
@@ -50,6 +51,9 @@ body::after {
 }
 
 .font-mono { font-family: var(--font-mono); }
+/* Pixel-art accent font — used sparingly on titles/nameplates for the retro feel */
+.pixel { font-family: "Press Start 2P", monospace; letter-spacing: 0.5px; }
+img, .pixelated { image-rendering: pixelated; }
 
 /* Neon helpers */
 .neon-border { box-shadow: 0 0 0 1px rgba(34,230,255,0.25), 0 0 18px rgba(34,230,255,0.12) inset; }

@@ -37,6 +37,7 @@ export const api = {
   tests: (id: string) => req("GET", `/api/agents/${id}/tests`),
   feasibility: (id: string, input: string) => req("POST", `/api/agents/${id}/feasibility`, { input }),
 
+  convene: (mode: "meeting" | "training" | "coaching", agentIds: string[], topic?: string) => req("POST", "/api/convene", { mode, agentIds, topic }),
   leaderboard: () => req("GET", "/api/leaderboard"),
   settleSeason: () => req("POST", "/api/league/season/settle"),
   whatIf: (s: unknown) => req("POST", "/api/league/whatif", s),

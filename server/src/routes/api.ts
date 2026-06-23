@@ -8,6 +8,7 @@ import { listTools, getTool } from "../registry.js";
 import { hasApiKey, settleAgent } from "../engine.js";
 import { authEnabled } from "../auth.js";
 import { runCommand, shellEnabled } from "../shell.js";
+import { convene } from "../meetings.js";
 import {
   listAgencies, getAgency, agencyPnl, agencyEquity, parseDoctrine, updateAgency,
 } from "../agencies.js";
@@ -436,6 +437,15 @@ api.post("/factory/agent", (req, res) => {
   const floorId = req.body?.floorId ?? "floor-league";
   const spec = proposeAgent(request, { agencyId, floorId });
   res.status(201).json(spec);
+});
+
+// ── meetings / training / coaching (multi-agent) ─────────────────────────────
+api.post("/convene", async (req, res) => {
+  const mode = ["meeting", "training", "coaching"].includes(req.body?.mode) ? req.body.mode : "meeting";
+  const agentIds: string[] = Array.isArray(req.body?.agentIds) ? req.body.agentIds : [];
+  if (!agentIds.length) return res.status(400).json({ error: "Pick at least one agent." });
+  const result = await convene(mode, agentIds, typeof req.body?.topic === "string" ? req.body.topic : undefined);
+  res.json(result);
 });
 
 // ── league ─────────────────────────────────────────────────────────────────

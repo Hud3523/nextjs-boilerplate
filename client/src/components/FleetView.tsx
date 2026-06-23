@@ -5,7 +5,7 @@ import { money, cn } from "../lib/ui";
 
 const RANK_COLOR = ["#ffd24a", "#c8d4e8", "#cd8e5a"];
 
-export function FleetView({ snap, onOpenAgency }: { snap: Snapshot; onOpenAgency: (id: string) => void }) {
+export function FleetView({ snap, onOpenAgency, onMeet }: { snap: Snapshot; onOpenAgency: (id: string) => void; onMeet: () => void }) {
   const board = snap.leaderboard;
   const maxCap = Math.max(1, ...board.map((b) => b.capital));
 
@@ -21,8 +21,17 @@ export function FleetView({ snap, onOpenAgency }: { snap: Snapshot; onOpenAgency
         </button>
       </div>
 
-      {/* Galaxy of agency ships */}
-      <div className="relative rounded-2xl border border-white/10 bg-[var(--color-deep)]/50 p-6 mb-4 min-h-[230px] flex flex-wrap items-center justify-center gap-8">
+      {/* Shared Meeting Hall, with every ship docked to it via a corridor */}
+      <div className="relative rounded-2xl border border-white/10 bg-[var(--color-deep)]/50 p-6 mb-4 space-bg starfield overflow-hidden">
+        <div className="relative flex flex-col items-center">
+          <button onClick={onMeet}
+            className="relative z-10 px-4 py-2.5 rounded-xl border border-cyan-400/50 bg-cyan-500/15 text-cyan-100 pixel text-[10px] hover:bg-cyan-500/25 glow-cyan">
+            🏛️ MEETING HALL
+          </button>
+          {/* corridor linking all docked ships to the hall */}
+          <div className="w-[85%] h-0.5 mt-3" style={{ background: "linear-gradient(90deg, transparent, var(--color-cyan), transparent)", boxShadow: "0 0 8px var(--color-cyan)" }} />
+        </div>
+        <div className="relative flex flex-wrap items-start justify-center gap-8 mt-3 min-h-[180px]">
         {board.map((b, i) => {
           const size = 56 + (b.capital / maxCap) * 60;
           const dead = b.status !== "active";
@@ -30,6 +39,7 @@ export function FleetView({ snap, onOpenAgency }: { snap: Snapshot; onOpenAgency
           return (
             <motion.button key={b.agencyId} layout whileHover={{ scale: 1.06 }} onClick={() => onOpenAgency(b.agencyId)}
               className="flex flex-col items-center group" style={{ opacity: dead ? 0.4 : 1 }}>
+              <div className="w-px h-4 -mt-3 mb-1" style={{ background: "rgba(34,230,255,0.4)" }} />
               <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3 + i, repeat: Infinity }}
                 className="relative rounded-full flex items-center justify-center"
                 style={{ width: size, height: size, background: `radial-gradient(circle at 35% 30%, ${color}33, transparent 70%)`, boxShadow: `0 0 24px ${color}66`, border: `1px solid ${color}88` }}>
@@ -41,6 +51,7 @@ export function FleetView({ snap, onOpenAgency }: { snap: Snapshot; onOpenAgency
             </motion.button>
           );
         })}
+        </div>
       </div>
 
       {/* Leaderboard table */}

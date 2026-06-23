@@ -321,6 +321,21 @@ async function aegisReview(agent: AgentRow, task: TaskRow, output: string): Prom
   return { safe, notes: review.replace(/^\s*(SAFE|UNSAFE)/i, "").trim().slice(0, 400) };
 }
 
+/** One-shot non-streaming completion — reused by critics and meetings. */
+export async function oneShot(system: string, userInput: string, maxTokens = 900): Promise<string> {
+  const client = new Anthropic({ apiKey: config.defaults.apiKey });
+  const res = await client.messages.create({
+    model: getSetting<string>("model", config.defaults.model),
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: userInput }],
+  });
+  return res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("");
+}
+export function isSimulating(): boolean {
+  return simulating();
+}
+
 /** One-shot non-streaming call for internal critics. */
 async function rawCall(system: string, userInput: string): Promise<string> {
   const client = new Anthropic({ apiKey: config.defaults.apiKey });

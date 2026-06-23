@@ -13,8 +13,9 @@ function Metric({ label, value, accent }: { label: string; value: string; accent
   );
 }
 
-export function StatusBar({ stats, onOpenCommissioner, onOpenDirective, onOpenBriefing, onOpenPalette }: {
+export function StatusBar({ stats, onOpenCommissioner, onOpenDirective, onOpenBriefing, onOpenPalette, onConvene }: {
   stats: Stats; onOpenCommissioner: () => void; onOpenDirective: () => void; onOpenBriefing: () => void; onOpenPalette: () => void;
+  onConvene: (m: "meeting" | "training" | "coaching") => void;
 }) {
   const [, tick] = useState(0);
   useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(i); }, []);
@@ -27,7 +28,7 @@ export function StatusBar({ stats, onOpenCommissioner, onOpenDirective, onOpenBr
       <div className="flex items-center gap-2 pr-3">
         <span className="text-2xl">🛰️</span>
         <div className="leading-tight">
-          <div className="font-mono text-sm tracking-[0.2em] text-[var(--color-cyan)] text-glow">MISSION CONTROL</div>
+          <div className="pixel text-[10px] tracking-[0.1em] text-[var(--color-cyan)] text-glow">MISSION CONTROL</div>
           <div className="text-[10px] text-white/40 tracking-widest uppercase">Autonomous Agency Command</div>
         </div>
       </div>
@@ -56,6 +57,9 @@ export function StatusBar({ stats, onOpenCommissioner, onOpenDirective, onOpenBr
           stats.dryRun ? "border-cyan-400/40 text-cyan-300" : "border-magenta-400/60 text-[var(--color-magenta)] glow-magenta")}>
           {stats.dryRun ? "DRY-RUN" : "● LIVE"}
         </span>
+        <button onClick={() => onConvene("meeting")} title="Hold a meeting" className="text-[13px] px-1.5 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10">🗣️</button>
+        <button onClick={() => onConvene("training")} title="Run training" className="text-[13px] px-1.5 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10">🎓</button>
+        <button onClick={() => onConvene("coaching")} title="Coach agents" className="text-[13px] px-1.5 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10">🧑‍🏫</button>
         <button onClick={onOpenPalette} title="Command palette (⌘K)" className="font-mono text-[11px] px-2 py-1.5 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">⌘K</button>
         <button onClick={onOpenBriefing} title="Daily briefing" className="font-mono text-[11px] px-2 py-1.5 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">📋</button>
         <button onClick={onOpenDirective} className="font-mono text-[11px] px-3 py-1.5 rounded bg-violet-500/20 border border-violet-400/40 text-violet-200 hover:bg-violet-500/30">

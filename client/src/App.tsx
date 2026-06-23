@@ -14,6 +14,7 @@ import { AgentDrawer } from "./components/AgentDrawer";
 import { Commissioner } from "./components/Commissioner";
 import { DirectiveModal } from "./components/DirectiveModal";
 import { BriefingModal } from "./components/BriefingModal";
+import { ConveneModal } from "./components/ConveneModal";
 import { CommandPalette } from "./components/CommandPalette";
 import { Toasts } from "./components/Toasts";
 import { Login } from "./components/Login";
@@ -55,6 +56,7 @@ function Dashboard() {
   const [showDirective, setShowDirective] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [convene, setConvene] = useState<"meeting" | "training" | "coaching" | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -86,7 +88,8 @@ function Dashboard() {
       onOpenCommissioner={() => setShowCommissioner(true)}
       onOpenDirective={() => setShowDirective(true)}
       onOpenBriefing={() => setShowBriefing(true)}
-      onOpenPalette={() => setShowPalette(true)} />
+      onOpenPalette={() => setShowPalette(true)}
+      onConvene={setConvene} />
   );
 
   const body = isMobile ? (
@@ -94,7 +97,7 @@ function Dashboard() {
       {statusBar}
       <div className="flex-1 flex flex-col overflow-hidden">
         {mobileTab === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} accent={accent} />}
-        {mobileTab === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
+        {mobileTab === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} onMeet={() => setConvene("meeting")} />}
         {mobileTab === "treasury" && <Treasury snap={snap} />}
         {mobileTab === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
         {mobileTab === "inbox" && <AttentionQueue snap={snap} onAct={reload} />}
@@ -134,7 +137,7 @@ function Dashboard() {
       <div className="flex-1 flex overflow-hidden">
         {view === "deck" && <CrewRoster agents={deckAgents} title={agency?.name ?? "Crew"} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
         {view === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} accent={accent} />}
-        {view === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
+        {view === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} onMeet={() => setConvene("meeting")} />}
         {view === "treasury" && <Treasury snap={snap} />}
         {view === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
         <AttentionQueue snap={snap} onAct={reload} />
@@ -152,6 +155,7 @@ function Dashboard() {
         {showCommissioner && <Commissioner key="comm" snap={snap} onClose={() => setShowCommissioner(false)} onChange={reload} />}
         {showDirective && <DirectiveModal key="dir" onClose={() => setShowDirective(false)} onChange={reload} />}
         {showBriefing && <BriefingModal key="brief" snap={snap} onClose={() => setShowBriefing(false)} />}
+        {convene && <ConveneModal key="convene" snap={snap} initialMode={convene} onClose={() => setConvene(null)} onChange={reload} />}
         {showPalette && (
           <CommandPalette key="palette" snap={snap} onClose={() => setShowPalette(false)}
             actions={{ goto: gotoView, openCommissioner: () => setShowCommissioner(true), openBriefing: () => setShowBriefing(true), openDirective: () => setShowDirective(true), selectAgent: setSelectedAgent, reload }} />
