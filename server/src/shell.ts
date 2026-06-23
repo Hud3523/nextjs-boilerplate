@@ -4,6 +4,7 @@ import { frozen, gov } from "./governance.js";
 import { raiseAttention } from "./attention.js";
 import { logActivity } from "./bus.js";
 import { audit } from "./audit.js";
+import { screenCommand } from "./security.js";
 import type { AgentRow } from "./agents.js";
 
 const pexec = promisify(exec);
@@ -34,20 +35,42 @@ function trunc(s: string | undefined, n = 4000): string {
   return s.length > n ? s.slice(0, n) + `\n…(${s.length - n} more chars truncated)` : s;
 }
 
-/** Queue a command for the operator to approve. Does NOT execute. */
+/**
+ * Queue a command for the operator to approve — after Warden screens it.
+ * Destructive commands are blocked here and never reach the approval queue.
+ */
 export function proposeCommand(agent: AgentRow, cmd: string, why: string) {
+  const screen = screenCommand(cmd);
+
+  if (screen.verdict === "block") {
+    raiseAttention({
+      kind: "escalation",
+      severity: "critical",
+      title: `🛡️ Warden blocked a dangerous command from ${agent.callsign}`,
+      body: `$ ${cmd}\n\nBlocked because it: ${screen.reasons.join("; ")}.\nThis command was NOT offered for approval and cannot run.`,
+      agentId: "warden",
+      floorId: agent.floor_id,
+    });
+    audit("warden", "block_command", { cmd, reasons: screen.reasons, from: agent.id });
+    logActivity("system", `🛡️ Warden BLOCKED a dangerous command from ${agent.callsign}: ${cmd.slice(0, 90)}`, { agentId: "warden" });
+    return;
+  }
+
+  const flagged = screen.verdict === "flag";
   raiseAttention({
     kind: "approval",
-    severity: "warn",
+    severity: flagged ? "critical" : "warn",
     title: `Run on your computer: ${cmd.slice(0, 80)}`,
-    body: why || "Command proposed by an agent. Review carefully before approving.",
-    payload: { kind: "shell_command", cmd, why, cwd: shellCwd(), agentId: agent.id },
+    body: flagged
+      ? `🛡️ Warden FLAGGED this — it ${screen.reasons.join("; ")}. Review extra carefully before approving.`
+      : why || "Command proposed by an agent. Review before approving.",
+    payload: { kind: "shell_command", cmd, why, cwd: shellCwd(), agentId: agent.id, flagged, reasons: screen.reasons },
     agentId: agent.id,
     floorId: agent.floor_id,
     agencyId: agent.agency_id,
   });
-  audit(agent.id, "propose_command", { cmd, cwd: shellCwd() });
-  logActivity("system", `${agent.callsign} proposes a command (awaiting your approval): ${cmd.slice(0, 100)}`, { agentId: agent.id });
+  audit(agent.id, "propose_command", { cmd, verdict: screen.verdict, reasons: screen.reasons });
+  logActivity("system", `${agent.callsign} proposes a command (Warden: ${screen.verdict}): ${cmd.slice(0, 90)}`, { agentId: agent.id });
 }
 
 export interface RunResult {
@@ -56,6 +79,10 @@ export interface RunResult {
 
 /** Execute a command — ONLY called after operator approval. */
 export async function runCommand(cmd: string): Promise<RunResult> {
+  // Defence in depth: re-screen at execution time so a blocked command can
+  // never run even if it somehow reached this point.
+  const screen = screenCommand(cmd);
+  if (screen.verdict === "block") return { ok: false, error: `Blocked by Warden security screen: ${screen.reasons.join("; ")}.` };
   if (frozen()) return { ok: false, error: "Execution frozen (emergency stop / pause active)." };
   if (gov.dryRun()) {
     audit("operator", "run_command_dryrun", { cmd });
