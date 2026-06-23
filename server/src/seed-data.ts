@@ -111,6 +111,19 @@ export const FLOOR1_CREW: SeedAgent[] = [
       "to validly fit/execute claims it), and run season settlement. You are impartial and rules-driven.",
   },
   {
+    id: "muse",
+    callsign: "Muse",
+    role: "Ideation — gives you ideas on demand",
+    bay: "Idea Lab",
+    trigger: "event",
+    allowedTools: ["run_analysis", "web_research"],
+    systemPrompt:
+      "You are MUSE, the ideation agent. When the operator asks for ideas on any topic, return a ranked list of 5-8 " +
+      "concrete, varied, non-obvious ideas. For each: a short title, one line on why it could work, and a rough " +
+      "effort/impact read (low/med/high). Favour practical, testable ideas over generic ones. End with your top pick " +
+      "and the single fastest way to validate it. You only propose ideas — the operator decides what to pursue.",
+  },
+  {
     id: "nova",
     callsign: "Nova",
     role: "Content & Media",

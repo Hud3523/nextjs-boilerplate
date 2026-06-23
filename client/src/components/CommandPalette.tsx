@@ -39,6 +39,11 @@ export function CommandPalette({ snap, actions, onClose }: {
       const a = findAgent(grade[1]);
       if (a) nl.push({ label: `Run training for ${a.callsign}`, hint: "grade", run: () => api.train(a.id, "dry-run") });
     }
+    const ideas = q.match(/^(?:ideas?|brainstorm)\b(?:\s+(?:for|about|on))?\s+(.+)/i);
+    if (ideas) {
+      const m = snap.agents.find((a) => a.callsign.toLowerCase() === "muse");
+      if (m) nl.push({ label: `Ask Muse for ideas: "${ideas[1]}"`, hint: "ideation", run: () => api.createTask({ agentId: m.id, title: `Ideas: ${ideas[1].slice(0, 40)}`, input: `Give me ideas for: ${ideas[1]}` }) });
+    }
     if (/^(find|launch|grow|make|build)\b/i.test(q)) nl.push({ label: `Issue directive: "${q}"`, hint: "directive", run: () => api.createDirective(q) });
 
     const agentCmds: Cmd[] = snap.agents.map((a) => ({ label: `Open ${a.callsign}`, hint: a.role, run: () => actions.selectAgent(a.id) }));
