@@ -29,6 +29,7 @@ export const api = {
 
   proposeAgent: (request: string, agencyId?: string, floorId?: string) => req("POST", "/api/factory/agent", { request, agencyId, floorId }),
 
+  setAgentModel: (id: string, model: string | null) => req("POST", `/api/agents/${id}/model`, { model }),
   train: (id: string, mode: "mock" | "dry-run") => req("POST", `/api/agents/${id}/train`, { mode }),
   tests: (id: string) => req("GET", `/api/agents/${id}/tests`),
   feasibility: (id: string, input: string) => req("POST", `/api/agents/${id}/feasibility`, { input }),

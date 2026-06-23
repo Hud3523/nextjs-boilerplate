@@ -206,6 +206,17 @@ api.post("/agents/:id/toggle", (req, res) => {
   res.json({ id: a.id, enabled });
 });
 
+// Per-agent model (cost control — route easy work to a cheaper model).
+api.post("/agents/:id/model", (req, res) => {
+  const a = getAgent(req.params.id);
+  if (!a) return res.status(404).json({ error: "Unknown agent" });
+  const m = typeof req.body?.model === "string" && req.body.model.trim() ? req.body.model.trim() : null;
+  db.prepare("UPDATE agents SET model=? WHERE id=?").run(m, a.id); // null = inherit global default
+  audit("operator", "set_agent_model", { agent: a.id, model: m });
+  logActivity("system", `${a.callsign} model set to ${m ?? "default"}.`, { agentId: a.id });
+  res.json({ id: a.id, model: m });
+});
+
 // ── Training Academy + Test Lab ───────────────────────────────────────────
 api.get("/agents/:id/tests", (req, res) => {
   const a = getAgent(req.params.id);

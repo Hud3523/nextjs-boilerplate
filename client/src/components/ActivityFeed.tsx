@@ -7,7 +7,7 @@ const TYPE_COLOR: Record<string, string> = {
   system: "var(--color-violet)", info: "#9fb0cc", token: "var(--color-cyan)",
 };
 
-export function ActivityFeed({ snap, stream }: { snap: Snapshot; stream: Record<string, string> }) {
+export function ActivityFeed({ snap, stream, variant = "bar" }: { snap: Snapshot; stream: Record<string, string>; variant?: "bar" | "full" }) {
   const ref = useRef<HTMLDivElement>(null);
   // Most recently streamed task (last key with content).
   const liveKeys = Object.keys(stream);
@@ -16,7 +16,7 @@ export function ActivityFeed({ snap, stream }: { snap: Snapshot; stream: Record<
   useEffect(() => { if (ref.current) ref.current.scrollTop = 0; }, [snap.activity]);
 
   return (
-    <div className="h-40 shrink-0 bg-[var(--color-deep)]/70 border-t border-cyan-400/15 flex flex-col">
+    <div className={`${variant === "full" ? "flex-1" : "h-40 shrink-0"} bg-[var(--color-deep)]/70 border-t border-cyan-400/15 flex flex-col`}>
       <div className="px-3 py-1.5 flex items-center gap-2 border-b border-white/5">
         <span className="text-[10px] uppercase tracking-widest text-white/40">📡 Activity Feed</span>
         <span className="w-1.5 h-1.5 rounded-full bg-jade-400 pulse-active" style={{ background: "var(--color-jade)" }} />

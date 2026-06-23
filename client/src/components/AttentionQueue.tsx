@@ -99,7 +99,7 @@ export function AttentionQueue({ snap, onAct }: { snap: Snapshot; onAct: () => v
   const tasksById = new Map(snap.tasks.map((t) => [t.id, t]));
   const items = snap.attention;
   return (
-    <aside className="w-[340px] shrink-0 flex flex-col bg-[var(--color-deep)]/60 border-l border-white/5">
+    <aside className="w-full md:w-[340px] shrink-0 flex flex-col bg-[var(--color-deep)]/60 md:border-l border-white/5">
       <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
         <span className="text-[10px] uppercase tracking-widest text-white/40">⚡ Attention</span>
         <span className="font-mono text-[11px] px-1.5 rounded bg-amber-500/20 text-amber-300">{items.length}</span>

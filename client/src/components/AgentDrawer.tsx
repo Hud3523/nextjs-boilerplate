@@ -33,7 +33,7 @@ export function AgentDrawer({ agentId, onClose, onChange }: { agentId: string; o
 
   return (
     <motion.div initial={{ x: 460 }} animate={{ x: 0 }} exit={{ x: 460 }} transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      className="fixed right-0 top-0 h-full w-[460px] z-30 bg-[var(--color-panel)]/95 backdrop-blur border-l border-cyan-400/30 overflow-y-auto">
+      className="fixed right-0 top-0 h-full w-full md:w-[460px] z-30 bg-[var(--color-panel)]/95 backdrop-blur border-l border-cyan-400/30 overflow-y-auto">
       <div className="sticky top-0 bg-[var(--color-panel)]/95 backdrop-blur p-4 border-b border-white/10 flex items-start justify-between">
         <div>
           <div className="font-mono text-lg text-cyan-300 text-glow">{a.callsign}</div>
@@ -99,7 +99,14 @@ export function AgentDrawer({ agentId, onClose, onChange }: { agentId: string; o
 
         {/* Config + guardrails */}
         <Section title="⚙️ Config">
-          <Row k="Model" v={a.model} />
+          <label className="flex items-center justify-between text-[11px] py-1">
+            <span className="text-white/40">Model</span>
+            <select value={a.model}
+              onChange={(e) => run("model", () => api.setAgentModel(agentId, e.target.value))}
+              className="bg-black/40 text-[11px] rounded px-1.5 py-1 border border-white/10 text-white/80 font-mono">
+              {["claude-opus-4-8", "claude-fable-5", "claude-sonnet-4-6", "claude-haiku-4-5"].map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
           <Row k="Tools" v={(a.allowedTools ?? []).join(", ") || "—"} />
           <div className="text-[10px] text-white/40 mt-1">Guardrails (inherited):</div>
           <ul className="text-[10px] text-white/50 list-disc pl-4">{(a.guardrails ?? []).map((g: string, i: number) => <li key={i}>{g}</li>)}</ul>

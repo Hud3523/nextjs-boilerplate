@@ -27,7 +27,7 @@ export function DirectiveModal({ onClose, onChange }: { onClose: () => void; onC
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-        className="w-[560px] rounded-2xl border border-violet-400/30 bg-[var(--color-panel)]/95 p-5">
+        className="w-[560px] max-w-[95vw] rounded-2xl border border-violet-400/30 bg-[var(--color-panel)]/95 p-5">
         <div className="flex items-center gap-2 mb-3">
           <button onClick={() => setTab("directive")} className={tabCls(tab === "directive")}>🎯 Directive</button>
           <button onClick={() => setTab("agent")} className={tabCls(tab === "agent")}>🛠️ New Agent</button>

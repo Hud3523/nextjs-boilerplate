@@ -32,7 +32,7 @@ export function StatusBar({ stats, onOpenCommissioner, onOpenDirective }: {
         </div>
       </div>
 
-      <div className="flex items-center flex-1 overflow-x-auto">
+      <div className="hidden sm:flex items-center flex-1 overflow-x-auto">
         <Metric label="Sim Revenue" value={money(stats.revenueUsd)} accent="var(--color-jade)" />
         <Metric label="Real Spend" value={money(stats.fundSpendUsd, 4)} accent="var(--color-magenta)" />
         <div className="flex flex-col px-3 border-l border-white/5 min-w-[150px]">
@@ -50,23 +50,24 @@ export function StatusBar({ stats, onOpenCommissioner, onOpenDirective }: {
         <Metric label="Mode" value={stats.tournamentMode} />
       </div>
 
+      <div className="flex-1 sm:hidden" />
       <div className="flex items-center gap-2">
         <span className={cn("font-mono text-[11px] px-2 py-1 rounded border",
           stats.dryRun ? "border-cyan-400/40 text-cyan-300" : "border-magenta-400/60 text-[var(--color-magenta)] glow-magenta")}>
           {stats.dryRun ? "DRY-RUN" : "● LIVE"}
         </span>
         <button onClick={onOpenDirective} className="font-mono text-[11px] px-3 py-1.5 rounded bg-violet-500/20 border border-violet-400/40 text-violet-200 hover:bg-violet-500/30">
-          + DIRECTIVE
+          <span className="sm:hidden">🎯</span><span className="hidden sm:inline">+ DIRECTIVE</span>
         </button>
         <button onClick={onOpenCommissioner} className="font-mono text-[11px] px-3 py-1.5 rounded bg-cyan-500/10 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/20">
-          CONTROL ROOM
+          <span className="sm:hidden">🎛️</span><span className="hidden sm:inline">CONTROL ROOM</span>
         </button>
         <motion.button
           whileTap={{ scale: 0.94 }}
           onClick={() => api.emergencyStop(!stats.emergencyStop)}
           className={cn("font-mono text-[11px] px-3 py-1.5 rounded border font-bold",
             stats.emergencyStop ? "bg-[var(--color-danger)]/30 border-red-400 text-red-200 pulse-active" : "bg-[var(--color-danger)]/15 border-red-500/50 text-red-300 hover:bg-[var(--color-danger)]/25")}>
-          🛑 {stats.emergencyStop ? "FROZEN" : "E-STOP"}
+          🛑<span className="hidden sm:inline"> {stats.emergencyStop ? "FROZEN" : "E-STOP"}</span>
         </motion.button>
       </div>
     </header>

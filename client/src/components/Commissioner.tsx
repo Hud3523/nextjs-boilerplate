@@ -36,7 +36,7 @@ export function Commissioner({ snap, onClose, onChange }: { snap: Snapshot; onCl
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-        className="w-[640px] max-h-[88vh] overflow-y-auto rounded-2xl border border-cyan-400/30 bg-[var(--color-panel)]/95 p-5">
+        className="w-[640px] max-w-[95vw] max-h-[88vh] overflow-y-auto rounded-2xl border border-cyan-400/30 bg-[var(--color-panel)]/95 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="font-mono text-cyan-300 text-glow">🎛️ COMMISSIONER CONTROL ROOM</div>
           <button onClick={onClose} className="text-white/40 hover:text-white">✕</button>
