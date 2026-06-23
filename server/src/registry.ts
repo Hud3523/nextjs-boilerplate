@@ -61,6 +61,19 @@ export const TOOL_REGISTRY: Record<string, Tool> = {
   spawn_agent: internal("spawn_agent", "Spawn Agent", "Author new agent configs from the registry (gated)."),
   manage_budget: internal("manage_budget", "Manage Budget", "Track spend and enforce caps; can halt floors."),
 
+  // ── local computer control (gated by ENABLE_SHELL + per-command approval) ──
+  shell: {
+    key: "shell",
+    label: "Computer / Shell",
+    description: "Propose shell commands to run on the operator's computer (per-command approval required).",
+    external: true,
+    configured: process.env.ENABLE_SHELL === "true",
+    setupHint: "Run the app on your computer and set ENABLE_SHELL=true; every command still needs your approval.",
+    async publish() {
+      return { ok: false, message: "Use the approval queue to run commands — shell does not auto-publish." };
+    },
+  },
+
   // ── external integrations (stubbed; gated behind approval + config) ──────
   shopify: externalStub("shopify", "Shopify", "Publish/update store listings.", "Add a Shopify store + Admin API token, then implement publish()."),
   etsy: externalStub("etsy", "Etsy", "Publish Etsy listings.", "Complete Etsy OAuth and add shop credentials."),

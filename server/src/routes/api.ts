@@ -7,6 +7,7 @@ import { gov, setFlag } from "../governance.js";
 import { listTools, getTool } from "../registry.js";
 import { hasApiKey, settleAgent } from "../engine.js";
 import { authEnabled } from "../auth.js";
+import { runCommand, shellEnabled } from "../shell.js";
 import {
   listAgencies, getAgency, agencyPnl, agencyEquity, parseDoctrine, updateAgency,
 } from "../agencies.js";
@@ -84,6 +85,7 @@ function stats() {
     apiKeyConfigured: hasApiKey(),
     tournamentMode: gov.tournamentMode(),
     authEnabled: authEnabled(),
+    shellEnabled: shellEnabled(),
   };
 }
 
@@ -334,11 +336,27 @@ api.post("/tasks/:id/reject", (req, res) => {
 // ── attention queue (generic + rich approval cards) ──────────────────────
 api.get("/attention", (_req, res) => res.json(listAttention()));
 
-api.post("/attention/:id/act", (req, res) => {
+api.post("/attention/:id/act", async (req, res) => {
   const item = getAttention(req.params.id);
   if (!item) return res.status(404).json({ error: "Unknown item" });
   const action = req.body?.action === "kill" ? "kill" : "approve";
   const payload = item.payload ? safeParse<Record<string, unknown>>(item.payload, {}) : {};
+
+  // Approved shell command → execute on the host (gated by ENABLE_SHELL + dry-run).
+  if ((payload as { kind?: string }).kind === "shell_command") {
+    const p = payload as { cmd: string };
+    if (action === "kill") {
+      resolveAttention(item.id);
+      audit("operator", "kill_command", { cmd: p.cmd });
+      logActivity("system", `Operator declined command: ${p.cmd.slice(0, 100)}`);
+      return res.json({ ok: true });
+    }
+    const result = await runCommand(p.cmd);
+    resolveAttention(item.id);
+    const out = result.simulated ? result.stdout : `exit ${result.code}\n${result.stdout ?? ""}${result.stderr ? "\nstderr:\n" + result.stderr : ""}`;
+    logActivity("info", `Command result for "${p.cmd.slice(0, 60)}": ${(out ?? result.error ?? "").slice(0, 200)}`, { agentId: item.agent_id ?? undefined, floorId: item.floor_id ?? undefined });
+    return res.json({ ok: result.ok, result });
+  }
 
   // Rich agent-spec approval card → materialize the agent (hot-loaded).
   if ((payload as { kind?: string }).kind === "agent_spec") {

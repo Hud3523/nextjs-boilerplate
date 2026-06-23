@@ -20,6 +20,7 @@ import {
 } from "./agents.js";
 import { getTask, updateTask, type TaskRow } from "./tasks.js";
 import { validateListing, simulateListing } from "./listing.js";
+import { proposeCommand, simulateShellPlan } from "./shell.js";
 import { gradeText, recordGrade } from "./academy.js";
 import { awardXp } from "./progression.js";
 
@@ -122,13 +123,19 @@ export async function runTask(taskId: string): Promise<void> {
   // Inject lessons learned so the org compounds instead of starting cold (Lattice).
   const lessons = recentLessons();
   const isListing = agentTools(agent).includes("draft_listing");
+  const isShell = agentTools(agent).includes("shell");
   let sys = lessons ? `${agent.system_prompt}\n\nRELEVANT LESSONS LEARNED:\n${lessons}` : agent.system_prompt;
   if (isListing)
     sys += `\n\nRespond with ONLY valid JSON matching this exact shape (no prose, no markdown fences):\n{"title": string, "description": string, "tags": string[]}`;
 
   let result;
   try {
-    if (isListing && simulating()) {
+    if (isShell && simulating()) {
+      const plan = simulateShellPlan(task.input);
+      const raw = JSON.stringify(plan, null, 2);
+      for (const w of raw.split(/(\s+)/)) emit({ type: "token", payload: { taskId, agentId: agent.id, text: w } });
+      result = { text: raw, inputTokens: 0, outputTokens: 0, simulated: true, raw };
+    } else if (isListing && simulating()) {
       // deterministic, schema-valid dry-run listing
       const listing = simulateListing(task.input);
       const raw = JSON.stringify(listing, null, 2);
@@ -149,6 +156,25 @@ export async function runTask(taskId: string): Promise<void> {
   let { text, inputTokens, outputTokens, simulated } = result;
   // Persist raw prompt + response for debugging (never contains secrets).
   updateTask(taskId, { raw_prompt: `SYSTEM:\n${sys}\n\nUSER:\n${task.input}`, raw_response: result.raw });
+
+  // ── shell agents: propose commands for per-command operator approval ──────
+  if (isShell) {
+    let commands: { cmd: string; why: string }[] = [];
+    let plan = text;
+    try {
+      const m = text.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(m ? m[0] : text);
+      plan = parsed.plan ?? text;
+      commands = Array.isArray(parsed.commands) ? parsed.commands.filter((c: { cmd?: unknown }) => typeof c.cmd === "string") : [];
+    } catch {
+      raiseAttention({ kind: "escalation", severity: "warn", title: `${agent.callsign}: could not parse a command plan`, body: text.slice(0, 400), agentId: agent.id, taskId });
+    }
+    updateTask(taskId, { status: "done", output: plan + (commands.length ? `\n\nProposed commands:\n${commands.map((c) => `$ ${c.cmd}  — ${c.why}`).join("\n")}` : "") });
+    for (const c of commands) proposeCommand(agent, c.cmd, c.why);
+    logActivity("run_end", `${agent.callsign} proposed ${commands.length} command(s) for "${task.title}" — awaiting your approval.`, { agentId: agent.id, taskId, floorId: agent.floor_id });
+    settleAgent(agent, `Proposed ${commands.length} command(s)`);
+    return;
+  }
 
   // Validated-outputs gate (guardrail #8): Forge listings must be valid JSON.
   if (isListing) {

@@ -71,6 +71,17 @@ function Card({ item, task, onAct }: { item: Attention; task?: Task; onAct: () =
         </div>
       )}
 
+      {/* Proposed shell command → run on the operator's computer */}
+      {payload?.kind === "shell_command" && (
+        <div className="mt-2">
+          <div className="rounded bg-black/50 border border-amber-400/30 p-2 font-mono text-[11px] text-amber-200 break-all">$ {payload.cmd}</div>
+          <div className="flex gap-1.5 mt-1.5">
+            <button onClick={() => run(() => api.actAttention(item.id, "approve"))} className="flex-1 text-[10px] py-1 rounded bg-amber-500/20 border border-amber-400/50 text-amber-100">▶ Run on my computer</button>
+            <button onClick={() => run(() => api.actAttention(item.id, "kill"))} className="text-[10px] px-2 py-1 rounded bg-red-500/10 border border-red-500/40 text-red-300">Kill</button>
+          </div>
+        </div>
+      )}
+
       {/* Opportunity approve/kill */}
       {item.kind === "opportunity" && payload?.opportunityId && (
         <div className="flex gap-1.5 mt-2">

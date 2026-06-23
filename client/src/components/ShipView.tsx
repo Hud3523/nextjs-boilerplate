@@ -5,7 +5,7 @@ import { STATUS_COLOR, GRADE_COLOR, money, cn } from "../lib/ui";
 const AVATAR: Record<string, string> = {
   Bridge: "🛰️", "Research Lab": "🔭", "Media Lab": "🎬", "Comms Array": "📡", "Revenue Bay": "💰",
   Factory: "🏭", "Isolation Pod": "🧪", "QA Bay": "🔍", Foundry: "🛠️", Treasury: "🏦",
-  "Safety Bay": "🛡️", Arbitration: "⚖️",
+  "Safety Bay": "🛡️", Arbitration: "⚖️", Airlock: "🖥️",
 };
 
 function Bay({ agent, onSelect }: { agent: Agent; onSelect: (id: string) => void }) {

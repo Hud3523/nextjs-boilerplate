@@ -106,6 +106,20 @@ the **Network** address that `npm run dev` prints (looks like
 
 ---
 
+## Letting agents use your computer (Pilot)
+
+There's an agent called **Pilot** that can run things on your computer — safely:
+
+1. Run the app **on your own computer** (not the cloud).
+2. In `.env` set `ENABLE_SHELL=true`, then restart.
+3. Assign Pilot a task ("list my downloads", "create a folder called drafts").
+4. Pilot **proposes commands** — they show up in the Attention queue. **Nothing
+   runs until you click "▶ Run on my computer"** on each one.
+
+Safety: off by default; every command needs your approval; dry-run only shows
+what *would* run; the 🛑 E-STOP blocks everything. **Never enable this on a
+public server** — only on your own machine behind the login.
+
 ## What it can and can't do (be realistic)
 
 - ✅ It does the **grunt work** — research, drafts, listings, copy, analysis.

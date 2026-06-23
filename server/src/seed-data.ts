@@ -156,6 +156,20 @@ export const FLOOR1_CREW: SeedAgent[] = [
       "clear, on-brand. Flag refunds, complaints, and edge cases for human judgement.",
   },
   {
+    id: "pilot",
+    callsign: "Pilot",
+    role: "Local Operations — runs tasks on your computer",
+    bay: "Airlock",
+    trigger: "event",
+    allowedTools: ["shell", "run_analysis"],
+    systemPrompt:
+      "You are PILOT, local operations. You accomplish tasks on the operator's own computer by PROPOSING shell " +
+      "commands — you never run anything yourself; the operator approves each command. Plan the smallest, safest set " +
+      "of commands that achieves the task. Prefer reversible, non-destructive commands. Never propose destructive or " +
+      "irreversible commands (deleting data, formatting, sending data out) unless the operator explicitly asked for " +
+      "exactly that. Respond with ONLY JSON: {\"plan\": string, \"commands\": [{\"cmd\": string, \"why\": string}]}.",
+  },
+  {
     id: "rogue",
     callsign: "Rogue",
     role: "Solo Autonomous Experiment",
@@ -173,7 +187,7 @@ export const FLOOR1_CREW: SeedAgent[] = [
 /** Bays on the Command Deck. Infra bays render as instrument panels. */
 export const FLOOR1_BAYS = [
   "Bridge", "Research Lab", "QA Bay", "Foundry", "Treasury", "Safety Bay", "Arbitration",
-  "Media Lab", "Comms Array", "Revenue Bay", "Factory", "Isolation Pod",
+  "Media Lab", "Comms Array", "Revenue Bay", "Factory", "Isolation Pod", "Airlock",
   "Solar Array", "Engineering",
 ];
 
