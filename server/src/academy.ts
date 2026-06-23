@@ -103,9 +103,19 @@ export function addTestCase(agentKey: string, name: string, input: string, rubri
 
 export function seedGoldenTests() {
   if (db.prepare("SELECT 1 FROM test_cases LIMIT 1").get()) return;
+  // Forge: structured-listing tests (schema-graded).
   addTestCase("forge", "Wireless earbuds", "Product: noise-cancelling wireless earbuds, 30h battery, USB-C, sweatproof.", "Valid JSON listing; compelling title; benefit-led description; 4-8 relevant tags.");
   addTestCase("forge", "Ceramic mug", "Product: handmade 350ml ceramic coffee mug, matte glaze, dishwasher safe.", "Valid JSON listing; artisanal tone; 4-8 tags.");
   addTestCase("forge", "Yoga mat", "Product: 6mm eco TPE yoga mat, non-slip, with carry strap.", "Valid JSON listing; wellness tone; tags include material + use.");
+  // Role-appropriate prose tests for the rest of the core crew.
+  addTestCase("vega", "Market scan", "Research the market for reusable food wraps: size, top competitors, a gap we could exploit.", "Clear findings, a named opportunity, and a confidence read.");
+  addTestCase("vega", "Keyword brief", "Find 8 high-intent keywords for a budget home-espresso niche and why each matters.", "Concrete keywords with rationale.");
+  addTestCase("nova", "Ad caption", "Write 3 ad captions for a sleep tea brand, different angles, with the channel noted.", "3 distinct, on-voice variations.");
+  addTestCase("nova", "Video hook", "Write a 5-second hook for a TikTok about a desk organiser.", "A punchy, scroll-stopping hook.");
+  addTestCase("orbit", "Launch post", "Draft a launch announcement post for a new phone grip, flag the platform.", "Clear post + target platform; nothing auto-published.");
+  addTestCase("orbit", "Outreach DM", "Draft a cold outreach DM to a micro-influencer for a skincare sample.", "Warm, concise, non-spammy.");
+  addTestCase("relay", "Refund reply", "Draft a reply to a customer asking for a refund on a late order.", "Empathetic, on-brand, flags the edge case for review.");
+  addTestCase("muse", "Idea burst", "Give ideas for a cheap weekend digital product.", "Ranked, varied, concrete ideas with a top pick.");
 }
 
 // ── Training run: grade each golden test (Mock or Dry-run) ───────────────────
@@ -113,8 +123,16 @@ export async function runTraining(agentId: string, mode: "mock" | "dry-run" = "d
   const agent = getAgent(agentId);
   if (!agent) return { error: "Unknown agent" };
   const key = agent.reputation_key ?? agent.id;
-  const cases = listTestCases(key);
-  if (!cases.length) return { error: "No golden test cases for this agent" };
+  let cases = listTestCases(key);
+  if (!cases.length) {
+    // No curated tests → fall back to generic role-based ones so EVERY agent
+    // (including runtime-spawned ones) can be trained and graded.
+    const now = Date.now();
+    cases = [
+      { id: `gen-${key}-1`, agent_key: key, name: "Representative task", input: `As ${agent.role}, produce your best work for a typical request in your domain. Be concrete and specific.`, rubric: null, created_at: now },
+      { id: `gen-${key}-2`, agent_key: key, name: "Tricky case", input: `As ${agent.role}, handle an ambiguous or harder-than-usual request in your domain. Show judgement and structure.`, rubric: null, created_at: now + 1 },
+    ];
+  }
   const isListing = agentTools(agent).includes("draft_listing");
   logActivity("system", `Training run for ${agent.callsign} (${mode}) over ${cases.length} golden cases…`, { agentId });
 
