@@ -31,6 +31,18 @@ export const STATUS_COLOR: Record<string, string> = {
   blocked: "var(--color-danger)",
 };
 
+const ACCENTS = ["#ff2bd6", "#22e6ff", "#8b5cff", "#21f3a3", "#ffb020", "#ff6ec7"];
+/** Stable neon accent per agency so each ship looks different. */
+export function agencyAccent(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return ACCENTS[h % ACCENTS.length];
+}
+
+export function shortModel(m: string): string {
+  return m.replace(/^claude-/, "").replace(/-\d{8}$/, "");
+}
+
 export const GRADE_COLOR: Record<string, string> = {
   A: "#21f3a3", "A-": "#5ef0b6", "B+": "#9be37a", B: "#cfe06a",
   C: "#ffb020", D: "#ff8a3b", F: "#ff3b5c",

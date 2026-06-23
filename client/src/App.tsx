@@ -18,7 +18,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { Toasts } from "./components/Toasts";
 import { Login } from "./components/Login";
 import { api } from "./lib/api";
-import { cn } from "./lib/ui";
+import { cn, agencyAccent } from "./lib/ui";
 
 type View = "deck" | "fleet" | "treasury" | "org";
 type MobileTab = View | "inbox" | "feed";
@@ -79,6 +79,7 @@ function Dashboard() {
   const gotoView = (v: View) => { setView(v); setMobileTab(v); };
   const openAgency = (id: string) => { setAgencyId(id); gotoView("deck"); };
   const attnCount = snap.attention.length;
+  const accent = agency ? agencyAccent(agency.id) : "#ff2bd6";
 
   const statusBar = (
     <StatusBar stats={snap.stats}
@@ -92,7 +93,7 @@ function Dashboard() {
     <div className="h-full flex flex-col relative z-10">
       {statusBar}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {mobileTab === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} />}
+        {mobileTab === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} accent={accent} />}
         {mobileTab === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
         {mobileTab === "treasury" && <Treasury snap={snap} />}
         {mobileTab === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
@@ -132,7 +133,7 @@ function Dashboard() {
       </div>
       <div className="flex-1 flex overflow-hidden">
         {view === "deck" && <CrewRoster agents={deckAgents} title={agency?.name ?? "Crew"} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
-        {view === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
+        {view === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} accent={accent} />}
         {view === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
         {view === "treasury" && <Treasury snap={snap} />}
         {view === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
