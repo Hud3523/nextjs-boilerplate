@@ -47,6 +47,13 @@ export function seedIfEmpty() {
     });
   }
 
+  // Going real? SEED_DEMO=false stops here — clean books, HQ crew only.
+  if (!config.defaults.seedDemo) {
+    audit("system", "seed", { mode: "clean", season: season.id });
+    logActivity("system", "Clean seed: Fund HQ crew + season only. Create your own agencies/agents from the Control Room and + DIRECTIVE.");
+    return;
+  }
+
   // 3) Competing agencies — distinct doctrines (the league).
   const slice = Math.max(3, Math.floor((config.defaults.masterFundCapUsd - 5) / 3));
   spawnAgency({

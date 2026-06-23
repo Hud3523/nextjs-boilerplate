@@ -22,6 +22,9 @@ export const config = {
     // League fund-level controls (Expansion III).
     masterFundCapUsd: Number(process.env.MASTER_FUND_CAP_USD ?? 25),
     drawdownPct: Number(process.env.DRAWDOWN_PCT ?? 50),
+    // Set SEED_DEMO=false to start clean (HQ crew only, no demo agencies /
+    // simulated revenue / demo directive) — for going real.
+    seedDemo: process.env.SEED_DEMO !== "false",
   },
 };
 

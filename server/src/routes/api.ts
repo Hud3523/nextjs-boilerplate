@@ -307,11 +307,13 @@ api.post("/tasks/:id/approve", (req, res) => {
   awardXp(agent.reputation_key ?? agent.id, 8, "approved"); // bonus XP for work you approved
   logActivity("approval", `${agent.callsign}'s "${task.title}" approved — ${note}.`, { agentId: agent.id, taskId: task.id, floorId: agent.floor_id });
 
-  // Simulated venture revenue (clearly cosmetic; flows to the agency's P&L).
-  if (!task.sandboxed && /listing|commerce|content|copy|product|outreach|message/i.test(agent.role)) {
+  // Cosmetic "win" revenue exists ONLY in dry-run so the demo feels alive. In
+  // LIVE mode we never fabricate revenue — real income must come from a wired
+  // integration reporting an actual sale (honest-money guardrail #9).
+  if (gov.dryRun() && !task.sandboxed && /listing|commerce|content|copy|product|outreach|message/i.test(agent.role)) {
     const amount = Math.round((10 + Math.random() * 90) * 100) / 100;
-    recordLedger("revenue", amount, { description: `Approved win: ${task.title}`, taskId: task.id, floorId: agent.floor_id, agencyId: agent.agency_id, simulated: gov.dryRun() });
-    logActivity("info", `Revenue +$${amount.toFixed(2)} from "${task.title}"${gov.dryRun() ? " (simulated)" : ""}.`, { agentId: agent.id, floorId: agent.floor_id });
+    recordLedger("revenue", amount, { description: `Approved win: ${task.title}`, taskId: task.id, floorId: agent.floor_id, agencyId: agent.agency_id, simulated: true });
+    logActivity("info", `Revenue +$${amount.toFixed(2)} from "${task.title}" (simulated).`, { agentId: agent.id, floorId: agent.floor_id });
   }
   res.json(getTask(task.id));
 });
