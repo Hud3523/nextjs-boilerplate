@@ -6,6 +6,7 @@ import { audit, listAudit } from "../audit.js";
 import { gov, setFlag } from "../governance.js";
 import { listTools, getTool } from "../registry.js";
 import { hasApiKey, settleAgent } from "../engine.js";
+import { authEnabled } from "../auth.js";
 import {
   listAgencies, getAgency, agencyPnl, agencyEquity, parseDoctrine, updateAgency,
 } from "../agencies.js";
@@ -82,6 +83,7 @@ function stats() {
     dryRun: gov.dryRun(),
     apiKeyConfigured: hasApiKey(),
     tournamentMode: gov.tournamentMode(),
+    authEnabled: authEnabled(),
   };
 }
 

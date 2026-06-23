@@ -129,6 +129,25 @@ In `server/src/registry.ts`, find the stubbed tool (e.g. `shopify`):
 3. The approval gate is unchanged: operator approval is what authorizes
    `publish()` to run. Everything else (queues, ledger, blockers) just works.
 
+### Secure it before hosting (operator login)
+The dashboard and API are open by default for local dev. **Before exposing it
+beyond localhost, set a password** in `.env`:
+```
+DASHBOARD_PASSWORD=something-strong
+COOKIE_SECURE=true          # when served over HTTPS
+```
+With it set, the app shows a login screen and every API/SSE request requires the
+session cookie (issued on login, HMAC-signed, httpOnly). Without it, the server
+prints an "AUTH DISABLED" warning on boot. Log out from the Control Room.
+
+### Go from demo to real
+1. `SEED_DEMO=false` in `.env` + delete `data/mission-control.db` → clean books
+   (Fund HQ crew + season only; no demo agencies/revenue/directive).
+2. Add `ANTHROPIC_API_KEY`, restart, and **Arm LIVE** in the Control Room.
+3. Set `DASHBOARD_PASSWORD` and run it on a persistent host (not the sandbox).
+4. Wire the real integration(s) you need (below). In live mode the app never
+   fabricates revenue — real income only comes from a wired integration.
+
 ### Arm real actions
 Set `ANTHROPIC_API_KEY` in `.env`, then in the **Control Room** click *Arm LIVE
 mode* and complete the triple‑confirm. Real spend is bounded by

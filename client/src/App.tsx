@@ -16,12 +16,35 @@ import { DirectiveModal } from "./components/DirectiveModal";
 import { BriefingModal } from "./components/BriefingModal";
 import { CommandPalette } from "./components/CommandPalette";
 import { Toasts } from "./components/Toasts";
+import { Login } from "./components/Login";
+import { api } from "./lib/api";
 import { cn } from "./lib/ui";
 
 type View = "deck" | "fleet" | "treasury" | "org";
 type MobileTab = View | "inbox" | "feed";
 
+/** Auth gate: shows the login screen when the server requires it. */
 export function App() {
+  const [auth, setAuth] = useState<{ ready: boolean; required: boolean; authed: boolean }>({ ready: false, required: false, authed: false });
+
+  useEffect(() => {
+    api.authStatus()
+      .then((a: { authEnabled: boolean; authed: boolean }) => setAuth({ ready: true, required: a.authEnabled, authed: a.authed }))
+      .catch(() => setAuth({ ready: true, required: false, authed: true }));
+  }, []);
+
+  if (!auth.ready) {
+    return (
+      <div className="h-full flex items-center justify-center text-cyan-300 font-mono">
+        <div className="text-center"><div className="text-4xl mb-3 animate-pulse">🛰️</div>connecting…</div>
+      </div>
+    );
+  }
+  if (auth.required && !auth.authed) return <Login onSuccess={() => setAuth((a) => ({ ...a, authed: true }))} />;
+  return <Dashboard />;
+}
+
+function Dashboard() {
   const { snap, connected, stream, toasts, dismissToast, reload } = useMissionControl();
   const isMobile = useIsMobile();
   const [view, setView] = useState<View>("deck");

@@ -39,7 +39,13 @@ export function Commissioner({ snap, onClose, onChange }: { snap: Snapshot; onCl
         className="w-[640px] max-w-[95vw] max-h-[88vh] overflow-y-auto rounded-2xl border border-cyan-400/30 bg-[var(--color-panel)]/95 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="font-mono text-cyan-300 text-glow">🎛️ COMMISSIONER CONTROL ROOM</div>
-          <button onClick={onClose} className="text-white/40 hover:text-white">✕</button>
+          <div className="flex items-center gap-3">
+            {(snap.stats as any).authEnabled && (
+              <button onClick={async () => { await api.logout(); location.reload(); }}
+                className="font-mono text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">Log out</button>
+            )}
+            <button onClick={onClose} className="text-white/40 hover:text-white">✕</button>
+          </div>
         </div>
 
         {/* Money guardrails */}

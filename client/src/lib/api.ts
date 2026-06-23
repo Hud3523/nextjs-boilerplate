@@ -9,6 +9,9 @@ async function req(method: string, url: string, body?: unknown) {
 }
 
 export const api = {
+  authStatus: () => req("GET", "/api/auth"),
+  login: (password: string) => req("POST", "/api/login", { password }),
+  logout: () => req("POST", "/api/logout"),
   state: () => req("GET", "/api/state"),
   agent: (id: string) => req("GET", `/api/agents/${id}`),
   agency: (id: string) => req("GET", `/api/agencies/${id}`),
