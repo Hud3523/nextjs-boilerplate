@@ -1,5 +1,21 @@
 import type { Snapshot } from "../types";
+import { api } from "../lib/api";
 import { money } from "../lib/ui";
+
+function EarningsChart({ series }: { series: { ts: number; revenue: number; spend: number; net: number }[] }) {
+  if (series.length < 2) return <div className="text-[11px] text-white/30 py-6 text-center">Not enough history yet — run a few cycles.</div>;
+  const w = 600, h = 120, pad = 4;
+  const maxV = Math.max(1, ...series.map((p) => Math.max(p.revenue, p.spend)));
+  const x = (i: number) => pad + (i / (series.length - 1)) * (w - 2 * pad);
+  const y = (v: number) => h - pad - (v / maxV) * (h - 2 * pad);
+  const line = (key: "revenue" | "spend") => series.map((p, i) => `${x(i)},${y(p[key])}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-32">
+      <polyline points={line("revenue")} fill="none" stroke="var(--color-jade)" strokeWidth="2" />
+      <polyline points={line("spend")} fill="none" stroke="var(--color-magenta)" strokeWidth="2" />
+    </svg>
+  );
+}
 
 /**
  * Treasury / P&L. Honest-money guardrail: REAL API cost and SIMULATED revenue
@@ -34,6 +50,18 @@ export function Treasury({ snap }: { snap: Snapshot }) {
         (API tokens). Everything green is simulated revenue while you're in {snap.stats.dryRun ? "dry-run" : "live"} mode.
       </div>
 
+      {/* Earnings over time */}
+      <div className="rounded-xl border border-white/10 bg-[var(--color-panel)]/40 p-3 mb-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-[10px] uppercase tracking-widest text-white/40">Earnings over time</div>
+          <div className="flex gap-3 text-[10px] font-mono">
+            <span style={{ color: "var(--color-jade)" }}>● made</span>
+            <span style={{ color: "var(--color-magenta)" }}>● cost</span>
+          </div>
+        </div>
+        <EarningsChart series={t.series} />
+      </div>
+
       {/* Per-agency earnings */}
       <div className="text-[10px] uppercase tracking-widest text-white/40 mb-2">Per-agency totals (lifetime)</div>
       <div className="space-y-2">
@@ -56,6 +84,13 @@ export function Treasury({ snap }: { snap: Snapshot }) {
               <Stat label="Cost (real API)" v={money(a.realSpend, 4)} c="var(--color-magenta)" />
               <Stat label="ROI" v={a.roi == null ? "—" : `${(a.roi * 100).toFixed(0)}%`} c="var(--color-cyan)" />
             </div>
+            {!a.isLeague && (
+              <div className="flex gap-1.5 mt-2">
+                <button onClick={() => api.promoteAgency(a.id)} className="text-[10px] px-2 py-1 rounded bg-jade-500/15 border text-[var(--color-jade)]" style={{ borderColor: "var(--color-jade)" }}>⬆ Promote (+capital)</button>
+                <button onClick={() => { if (confirm(`Disband ${a.name}? This liquidates it and kills its floors.`)) api.disbandAgency(a.id); }}
+                  className="text-[10px] px-2 py-1 rounded bg-red-500/10 border border-red-500/40 text-red-300">Disband</button>
+              </div>
+            )}
           </div>
         ))}
       </div>

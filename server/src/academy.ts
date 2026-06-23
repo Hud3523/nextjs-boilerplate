@@ -7,6 +7,7 @@ import { validateListing, simulateListing } from "./listing.js";
 import { gov } from "./governance.js";
 import { getAgent, tools as agentTools, type AgentRow } from "./agents.js";
 import { produce, hasApiKey } from "./engine.js";
+import { awardXp } from "./progression.js";
 
 // ── Grading: deterministic checks + a heuristic/judge score ──────────────────
 export interface Grade {
@@ -140,6 +141,7 @@ export async function runTraining(agentId: string, mode: "mock" | "dry-run" = "d
   audit("operator", "training_run", { agent: agentId, mode, avg });
   logActivity("system", `${agent.callsign} training run complete: avg ${avg} (${letterForAvg(avg)}).`, { agentId });
 
+  if (avg >= 90) awardXp(key, 15, "training_A"); // Scholar badge + XP for acing training
   // Prompt-improvement loop: if weak, propose a refined prompt for approval.
   if (avg < 85) proposePromptImprovement(agent, avg);
   return { avg, letter: letterForAvg(avg), results };

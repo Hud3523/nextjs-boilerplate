@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useMissionControl } from "./lib/store";
 import { useIsMobile } from "./lib/useIsMobile";
@@ -13,13 +13,16 @@ import { ActivityFeed } from "./components/ActivityFeed";
 import { AgentDrawer } from "./components/AgentDrawer";
 import { Commissioner } from "./components/Commissioner";
 import { DirectiveModal } from "./components/DirectiveModal";
+import { BriefingModal } from "./components/BriefingModal";
+import { CommandPalette } from "./components/CommandPalette";
+import { Toasts } from "./components/Toasts";
 import { cn } from "./lib/ui";
 
 type View = "deck" | "fleet" | "treasury" | "org";
-type MobileTab = "deck" | "fleet" | "treasury" | "org" | "inbox" | "feed";
+type MobileTab = View | "inbox" | "feed";
 
 export function App() {
-  const { snap, connected, stream, reload } = useMissionControl();
+  const { snap, connected, stream, toasts, dismissToast, reload } = useMissionControl();
   const isMobile = useIsMobile();
   const [view, setView] = useState<View>("deck");
   const [mobileTab, setMobileTab] = useState<MobileTab>("deck");
@@ -27,6 +30,16 @@ export function App() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showCommissioner, setShowCommissioner] = useState(false);
   const [showDirective, setShowDirective] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(false);
+  const [showPalette, setShowPalette] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setShowPalette((v) => !v); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const agency = useMemo(() => snap?.agencies.find((a) => a.id === agencyId) ?? snap?.agencies[0], [snap, agencyId]);
   const deckFloor = useMemo(() => snap?.floors.find((f) => f.agency_id === agency?.id && f.depth === 0) ?? null, [snap, agency]);
@@ -40,52 +53,45 @@ export function App() {
     );
   }
 
-  const openAgency = (id: string) => { setAgencyId(id); setView("deck"); setMobileTab("deck"); };
+  const gotoView = (v: View) => { setView(v); setMobileTab(v); };
+  const openAgency = (id: string) => { setAgencyId(id); gotoView("deck"); };
   const attnCount = snap.attention.length;
 
-  // ── Mobile: single column + bottom tab bar ────────────────────────────────
-  if (isMobile) {
-    return (
-      <div className="h-full flex flex-col relative z-10">
-        <StatusBar stats={snap.stats} onOpenCommissioner={() => setShowCommissioner(true)} onOpenDirective={() => setShowDirective(true)} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {mobileTab === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} />}
-          {mobileTab === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
-          {mobileTab === "treasury" && <Treasury snap={snap} />}
-          {mobileTab === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
-          {mobileTab === "inbox" && <AttentionQueue snap={snap} onAct={reload} />}
-          {mobileTab === "feed" && <ActivityFeed snap={snap} stream={stream} variant="full" />}
-        </div>
-        <nav className="shrink-0 flex items-stretch bg-[var(--color-panel)]/90 border-t border-cyan-400/20">
-          {([
-            ["deck", "🛸", "Deck"], ["fleet", "🌌", "Fleet"], ["treasury", "💰", "Money"], ["org", "🌳", "Org"],
-            ["inbox", "⚡", "Inbox"], ["feed", "📡", "Feed"],
-          ] as [MobileTab, string, string][]).map(([t, icon, label]) => (
-            <button key={t} onClick={() => setMobileTab(t)}
-              className={cn("flex-1 flex flex-col items-center py-2 text-[10px] font-mono relative",
-                mobileTab === t ? "text-cyan-300" : "text-white/40")}>
-              <span className="text-lg leading-none">{icon}</span>{label}
-              {t === "inbox" && attnCount > 0 && (
-                <span className="absolute top-1 right-1/4 text-[8px] px-1 rounded-full bg-amber-500 text-black font-bold">{attnCount}</span>
-              )}
-            </button>
-          ))}
-        </nav>
+  const statusBar = (
+    <StatusBar stats={snap.stats}
+      onOpenCommissioner={() => setShowCommissioner(true)}
+      onOpenDirective={() => setShowDirective(true)}
+      onOpenBriefing={() => setShowBriefing(true)}
+      onOpenPalette={() => setShowPalette(true)} />
+  );
 
-        <AnimatePresence>
-          {selectedAgent && <AgentDrawer key="drawer" agentId={selectedAgent} onClose={() => setSelectedAgent(null)} onChange={reload} />}
-          {showCommissioner && <Commissioner key="comm" snap={snap} onClose={() => setShowCommissioner(false)} onChange={reload} />}
-          {showDirective && <DirectiveModal key="dir" onClose={() => setShowDirective(false)} onChange={reload} />}
-        </AnimatePresence>
-      </div>
-    );
-  }
-
-  // ── Desktop ───────────────────────────────────────────────────────────────
-  return (
+  const body = isMobile ? (
     <div className="h-full flex flex-col relative z-10">
-      <StatusBar stats={snap.stats} onOpenCommissioner={() => setShowCommissioner(true)} onOpenDirective={() => setShowDirective(true)} />
-
+      {statusBar}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {mobileTab === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} />}
+        {mobileTab === "fleet" && <FleetView snap={snap} onOpenAgency={openAgency} />}
+        {mobileTab === "treasury" && <Treasury snap={snap} />}
+        {mobileTab === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
+        {mobileTab === "inbox" && <AttentionQueue snap={snap} onAct={reload} />}
+        {mobileTab === "feed" && <ActivityFeed snap={snap} stream={stream} variant="full" />}
+      </div>
+      <nav className="shrink-0 flex items-stretch bg-[var(--color-panel)]/90 border-t border-cyan-400/20">
+        {([
+          ["deck", "🛸", "Deck"], ["fleet", "🌌", "Fleet"], ["treasury", "💰", "Money"], ["org", "🌳", "Org"],
+          ["inbox", "⚡", "Inbox"], ["feed", "📡", "Feed"],
+        ] as [MobileTab, string, string][]).map(([t, icon, label]) => (
+          <button key={t} onClick={() => setMobileTab(t)}
+            className={cn("flex-1 flex flex-col items-center py-2 text-[10px] font-mono relative", mobileTab === t ? "text-cyan-300" : "text-white/40")}>
+            <span className="text-lg leading-none">{icon}</span>{label}
+            {t === "inbox" && attnCount > 0 && <span className="absolute top-1 right-1/4 text-[8px] px-1 rounded-full bg-amber-500 text-black font-bold">{attnCount}</span>}
+          </button>
+        ))}
+      </nav>
+    </div>
+  ) : (
+    <div className="h-full flex flex-col relative z-10">
+      {statusBar}
       <div className="flex items-center gap-1 px-4 py-1.5 bg-[var(--color-deep)]/40 border-b border-white/5">
         {(["deck", "fleet", "treasury", "org"] as View[]).map((v) => (
           <button key={v} onClick={() => setView(v)}
@@ -101,7 +107,6 @@ export function App() {
           {connected ? "SSE live" : "reconnecting…"}
         </div>
       </div>
-
       <div className="flex-1 flex overflow-hidden">
         {view === "deck" && <CrewRoster agents={deckAgents} title={agency?.name ?? "Crew"} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
         {view === "deck" && <ShipView floor={deckFloor} agents={deckAgents} stats={snap.stats} onSelect={setSelectedAgent} selectedId={selectedAgent ?? undefined} />}
@@ -110,14 +115,24 @@ export function App() {
         {view === "org" && <OrgGraph snap={snap} onOpenAgency={openAgency} onSelectAgent={setSelectedAgent} />}
         <AttentionQueue snap={snap} onAct={reload} />
       </div>
-
       <ActivityFeed snap={snap} stream={stream} />
+    </div>
+  );
 
+  return (
+    <>
+      {body}
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
       <AnimatePresence>
         {selectedAgent && <AgentDrawer key="drawer" agentId={selectedAgent} onClose={() => setSelectedAgent(null)} onChange={reload} />}
         {showCommissioner && <Commissioner key="comm" snap={snap} onClose={() => setShowCommissioner(false)} onChange={reload} />}
         {showDirective && <DirectiveModal key="dir" onClose={() => setShowDirective(false)} onChange={reload} />}
+        {showBriefing && <BriefingModal key="brief" snap={snap} onClose={() => setShowBriefing(false)} />}
+        {showPalette && (
+          <CommandPalette key="palette" snap={snap} onClose={() => setShowPalette(false)}
+            actions={{ goto: gotoView, openCommissioner: () => setShowCommissioner(true), openBriefing: () => setShowBriefing(true), openDirective: () => setShowDirective(true), selectAgent: setSelectedAgent, reload }} />
+        )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

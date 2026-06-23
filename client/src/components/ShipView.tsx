@@ -31,7 +31,8 @@ function Bay({ agent, onSelect }: { agent: Agent; onSelect: (id: string) => void
       <div className="text-[10px] text-white/35 truncate mt-1 h-3.5">{agent.lastAction ?? agent.role}</div>
       <div className="flex items-center gap-2 mt-1">
         <span className="font-mono text-[10px]" style={{ color }}>{agent.status}</span>
-        {grade && <span className="ml-auto font-mono text-[11px] font-bold" style={{ color: GRADE_COLOR[grade] }}>{grade}</span>}
+        {agent.progression && <span className="ml-auto font-mono text-[10px] text-violet-300">L{agent.progression.level}</span>}
+        {grade && <span className="font-mono text-[11px] font-bold" style={{ color: GRADE_COLOR[grade] }}>{grade}</span>}
       </div>
     </motion.button>
   );

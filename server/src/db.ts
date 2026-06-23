@@ -229,6 +229,15 @@ db.exec(`
     detail TEXT
   );
 
+  -- Gamification: XP / level / badges, keyed by agent role (survives respawn).
+  CREATE TABLE IF NOT EXISTS progression (
+    agent_key  TEXT PRIMARY KEY,
+    xp         REAL NOT NULL DEFAULT 0,
+    level      INTEGER NOT NULL DEFAULT 1,
+    badges     TEXT NOT NULL DEFAULT '[]',
+    updated_at INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT

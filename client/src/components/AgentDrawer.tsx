@@ -63,6 +63,21 @@ export function AgentDrawer({ agentId, onClose, onChange }: { agentId: string; o
           </div>
         </Section>
 
+        {/* Progression */}
+        {a.progression && (
+          <Section title={`⭐ Level ${a.progression.level} · ${Math.round(a.progression.xp)} XP`}>
+            <div className="h-2 rounded bg-white/10 overflow-hidden">
+              <div className="h-full rounded" style={{ width: `${Math.min(100, (a.progression.intoLevel / Math.max(1, a.progression.nextLevelXp)) * 100)}%`, background: "var(--color-violet)", boxShadow: "0 0 8px var(--color-violet)" }} />
+            </div>
+            <div className="text-[10px] text-white/40 mt-1">{Math.round(a.progression.intoLevel)}/{Math.round(a.progression.nextLevelXp)} XP to next level</div>
+            {a.progression.badgeLabels?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {a.progression.badgeLabels.map((b: string, i: number) => <span key={i} className="text-[11px] px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-400/30">{b}</span>)}
+              </div>
+            )}
+          </Section>
+        )}
+
         {/* Test Lab */}
         <Section title="🧪 Test Lab — Feasibility">
           <input value={feasInput} onChange={(e) => setFeasInput(e.target.value)} placeholder="Describe a task… would it work?"

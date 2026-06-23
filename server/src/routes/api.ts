@@ -39,6 +39,7 @@ import { processQueue } from "../scheduler.js";
 import {
   reportCard, listTestCases, addTestCase, runTraining, feasibility,
 } from "../academy.js";
+import { getProgression, listProgression, awardXp } from "../progression.js";
 
 export const api = Router();
 
@@ -53,6 +54,7 @@ function agentView(a: AgentRow) {
     status: a.status, lastAction: a.last_action, lastRunAt: a.last_run_at, nextRunAt: a.next_run_at,
     reputationKey: a.reputation_key,
     report: reportCard(a.reputation_key ?? a.id),
+    progression: getProgression(a.reputation_key ?? a.id),
   };
 }
 
@@ -126,6 +128,7 @@ api.get("/state", (_req, res) => {
     analytics: analytics(),
     briefing: dailyBriefing(),
     treasury: treasury(),
+    progression: listProgression(),
     stats: stats(),
     settings: settingsView(),
   });
@@ -301,6 +304,7 @@ api.post("/tasks/:id/approve", (req, res) => {
   const note = target ? `published via ${target.label}` : "filed as approved draft (no external publish configured)";
   updateTask(task.id, { status: "done" });
   audit("operator", "approve_task", { task: task.id });
+  awardXp(agent.reputation_key ?? agent.id, 8, "approved"); // bonus XP for work you approved
   logActivity("approval", `${agent.callsign}'s "${task.title}" approved — ${note}.`, { agentId: agent.id, taskId: task.id, floorId: agent.floor_id });
 
   // Simulated venture revenue (clearly cosmetic; flows to the agency's P&L).

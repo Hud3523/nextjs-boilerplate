@@ -3,6 +3,7 @@ import { api } from "./api";
 import type { Snapshot } from "../types";
 
 export interface LiveToken { taskId: string; agentId: string; text: string; ts: number; }
+export interface Toast { id: number; severity: string; title: string; kind: string; }
 
 /**
  * Single source of truth for the dashboard: loads the full snapshot, then
@@ -13,7 +14,11 @@ export function useMissionControl() {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [connected, setConnected] = useState(false);
   const [stream, setStream] = useState<Record<string, string>>({}); // taskId -> live text
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastId = useRef(0);
+
+  const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
   const reload = useCallback(async () => {
     try {
@@ -41,10 +46,17 @@ export function useMissionControl() {
         setStream((s) => ({ ...s, [taskId]: (s[taskId] || "") + text }));
         return; // tokens don't trigger a refetch
       }
+      if (evt.type === "toast") {
+        const id = ++toastId.current;
+        const p = evt.payload as { severity: string; title: string; kind: string };
+        setToasts((t) => [...t, { id, ...p }].slice(-4));
+        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 6000);
+        return;
+      }
       scheduleReload();
     };
     return () => es.close();
   }, [reload, scheduleReload]);
 
-  return { snap, connected, stream, reload };
+  return { snap, connected, stream, toasts, dismissToast, reload };
 }

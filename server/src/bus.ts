@@ -18,7 +18,7 @@ export interface ServerEvent {
   type:
     | "activity" | "task" | "agent" | "attention" | "ledger" | "token" | "stats"
     | "agency" | "floor" | "memory" | "board" | "audit" | "reputation"
-    | "season" | "directive" | "opportunity";
+    | "season" | "directive" | "opportunity" | "progression" | "toast";
   payload: unknown;
 }
 

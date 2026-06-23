@@ -21,6 +21,7 @@ import {
 import { getTask, updateTask, type TaskRow } from "./tasks.js";
 import { validateListing, simulateListing } from "./listing.js";
 import { gradeText, recordGrade } from "./academy.js";
+import { awardXp } from "./progression.js";
 
 const MAX_QA_PASSES = 2;
 
@@ -230,6 +231,7 @@ export async function runTask(taskId: string): Promise<void> {
   // Grade this output for the agent's live report card.
   const g = gradeText(agent.reputation_key ?? agent.id, task.input, text, isListing);
   recordGrade({ agentId: agent.id, agentKey: agent.reputation_key ?? agent.id, score: g.score, letter: g.letter, kind: "task", detail: g.detail });
+  awardXp(agent.reputation_key ?? agent.id, 4 + g.score / 20, "task"); // XP for completing graded work
   logActivity(
     "run_end",
     `${agent.callsign} finished "${task.title}" — ${outputTokens} out tok, $${spendAmt.toFixed(4)}${simulated ? " (sim)" : ""}.`,

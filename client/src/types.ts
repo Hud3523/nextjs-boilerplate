@@ -7,6 +7,12 @@ export interface Agent {
   allowedTools: string[]; guardrails: string[]; sandboxed: boolean; permanent: boolean;
   enabled: boolean; status: string; lastAction: string | null; lastRunAt: number | null;
   nextRunAt: number | null; reputationKey: string | null; report?: ReportCard; systemPrompt?: string;
+  progression?: Progression;
+}
+
+export interface Progression {
+  xp: number; level: number; badges: string[]; badgeLabels: string[];
+  intoLevel: number; nextLevelXp: number;
 }
 
 export interface Doctrine {
@@ -65,7 +71,16 @@ export interface Snapshot {
   agencies: Agency[]; floors: Floor[]; agents: Agent[]; leaderboard: LeaderEntry[];
   tasks: Task[]; attention: Attention[]; opportunities: Opportunity[]; directives: any[];
   tools: any[]; activity: ActivityRow[]; memory: any[]; reputation: any[]; season: any;
-  seasons: any[]; analytics: any; briefing: any; treasury: Treasury; stats: Stats; settings: any;
+  seasons: any[]; analytics: any; briefing: Briefing; treasury: Treasury;
+  progression: { agentKey: string; xp: number; level: number; badges: string[] }[];
+  stats: Stats; settings: any;
+}
+
+export interface Briefing {
+  generatedAt: number; season: string | null;
+  leaderboard: { name: string; net: number; roi: number | null; rank: number; status: string }[];
+  consolidatedNet: number; pendingApprovals: number; blocked: number;
+  topOpportunities: { title: string; confidence: number }[];
 }
 
 export interface TreasuryAgency {
@@ -79,4 +94,5 @@ export interface Treasury {
     totalRevenue: number; totalSpend: number; net: number;
   };
   agencies: TreasuryAgency[];
+  series: { ts: number; revenue: number; spend: number; net: number }[];
 }

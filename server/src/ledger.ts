@@ -148,7 +148,23 @@ export function treasury() {
       net: Math.round((fund.realRevenue + fund.simRevenue - fund.realSpend - fund.simSpend) * 100) / 100,
     },
     agencies,
+    series: earningsSeries(),
   };
+}
+
+/** Cumulative made/cost/net over time, downsampled to ~60 points for charting. */
+export function earningsSeries() {
+  const rows = db.prepare("SELECT ts, type, amount_usd FROM ledger ORDER BY ts ASC").all() as {
+    ts: number; type: string; amount_usd: number;
+  }[];
+  let rev = 0, sp = 0;
+  const all = rows.map((r) => {
+    if (r.type === "revenue") rev += r.amount_usd; else sp += r.amount_usd;
+    return { ts: r.ts, revenue: Math.round(rev * 100) / 100, spend: Math.round(sp * 100) / 100, net: Math.round((rev - sp) * 100) / 100 };
+  });
+  if (all.length <= 60) return all;
+  const step = Math.ceil(all.length / 60);
+  return all.filter((_, i) => i % step === 0 || i === all.length - 1);
 }
 
 export { startOfTodayMs };

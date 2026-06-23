@@ -54,6 +54,10 @@ export function raiseAttention(input: {
      VALUES (@id, @ts, @kind, @severity, @title, @body, @payload, @task_id, @agent_id, @floor_id, @agency_id, @status)`,
   ).run(row);
   emit({ type: "attention", payload: row });
+  // Surface notable items as ephemeral toasts (not the noisy per-cycle approvals).
+  if (row.severity !== "info" || row.kind === "escalation" || row.kind === "blocker") {
+    emit({ type: "toast", payload: { severity: row.severity, title: row.title, kind: row.kind } });
+  }
   return row;
 }
 

@@ -26,6 +26,7 @@ export function CrewRoster({ agents, title, onSelect, selectedId }: {
                 <span className="font-mono text-sm text-white/90">{a.callsign}</span>
                 {a.sandboxed && <span title="sandboxed" className="text-[9px]">🧪</span>}
                 <span className="ml-auto font-mono text-[10px]" style={{ color }}>{a.status}</span>
+                {a.progression && <span className="font-mono text-[10px] text-violet-300">L{a.progression.level}</span>}
                 {grade && <span className="font-mono text-[11px] font-bold px-1 rounded" style={{ color: GRADE_COLOR[grade] }}>{grade}</span>}
               </div>
               <div className="text-[10px] text-white/40 truncate mt-0.5">{a.role}</div>
