@@ -2,26 +2,30 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { Stats } from "../types";
 import { api } from "../lib/api";
-import { money, countdown, cn } from "../lib/ui";
+import { money, cn } from "../lib/ui";
 
-function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) {
-  return (
-    <div className="flex flex-col px-3 border-l border-white/5 first:border-0">
-      <span className="text-[10px] uppercase tracking-widest text-white/40">{label}</span>
-      <span className="font-mono text-sm" style={{ color: accent }}>{value}</span>
-    </div>
-  );
-}
-
-export function StatusBar({ stats, onOpenCommissioner, onOpenDirective, onOpenBriefing, onOpenPalette, onConvene }: {
-  stats: Stats; onOpenCommissioner: () => void; onOpenDirective: () => void; onOpenBriefing: () => void; onOpenPalette: () => void;
-  onConvene: (m: "meeting" | "training" | "coaching") => void;
+export function StatusBar({ stats, hermes, onOpenPalette, onChange }: {
+  stats: Stats; hermes: { mode: string; health: { ok: boolean } }; onOpenPalette: () => void; onChange: () => void;
 }) {
   const [, tick] = useState(0);
+  const [armStep, setArmStep] = useState(0);
   useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(i); }, []);
 
-  const capPct = stats.masterFundCapUsd > 0 ? Math.min(100, (stats.fundSpendUsd / stats.masterFundCapUsd) * 100) : 0;
-  const meterColor = capPct >= 100 ? "var(--color-danger)" : capPct >= 80 ? "var(--color-amber)" : "var(--color-cyan)";
+  const cap = stats.budgetCapUsd;
+  const pct = cap > 0 ? Math.min(100, (stats.spendUsd / cap) * 100) : 0;
+  const meter = pct >= 100 ? "var(--color-danger)" : pct >= 80 ? "var(--color-amber)" : "var(--color-cyan)";
+
+  async function arm() {
+    if (!stats.dryRun) { await api.arm(false); onChange(); return; }
+    const next = armStep + 1;
+    if (next < 3) { setArmStep(next); return; }
+    try { await api.arm(true, 3); } catch { /* ignore */ }
+    setArmStep(0); onChange();
+  }
+  async function editBudget() {
+    const v = prompt("Budget cap (USD):", String(cap));
+    if (v != null && !Number.isNaN(Number(v))) { await api.saveSettings(Number(v)); onChange(); }
+  }
 
   return (
     <header className="relative z-10 flex items-center gap-2 px-4 h-16 bg-[var(--color-panel)]/70 backdrop-blur border-b border-cyan-400/20">
@@ -29,50 +33,41 @@ export function StatusBar({ stats, onOpenCommissioner, onOpenDirective, onOpenBr
         <span className="text-2xl">🛰️</span>
         <div className="leading-tight">
           <div className="pixel text-[10px] tracking-[0.1em] text-[var(--color-cyan)] text-glow">MISSION CONTROL</div>
-          <div className="text-[10px] text-white/40 tracking-widest uppercase">Autonomous Agency Command</div>
+          <div className="text-[10px] text-white/40 tracking-widest uppercase">Hermes dashboard</div>
         </div>
       </div>
 
-      <div className="hidden sm:flex items-center flex-1 overflow-x-auto">
-        <Metric label="Sim Revenue" value={money(stats.revenueUsd)} accent="var(--color-jade)" />
-        <Metric label="Real Spend" value={money(stats.fundSpendUsd, 4)} accent="var(--color-magenta)" />
-        <div className="flex flex-col px-3 border-l border-white/5 min-w-[150px]">
-          <span className="text-[10px] uppercase tracking-widest text-white/40">Fund Cap</span>
+      <div className="hidden sm:flex items-center gap-3 flex-1 overflow-x-auto">
+        <span className={cn("font-mono text-[11px] px-2 py-1 rounded border", hermes.health.ok ? "border-jade-400/40 text-[var(--color-jade)]" : "border-red-500/50 text-red-300")}
+          style={{ color: hermes.health.ok ? "var(--color-jade)" : "var(--color-danger)", borderColor: hermes.health.ok ? "rgba(33,243,163,0.4)" : "rgba(255,59,92,0.5)" }}>
+          Hermes: {hermes.mode}{hermes.health.ok ? " ●" : " ✕"}
+        </span>
+        <button onClick={editBudget} className="flex flex-col px-2 border-l border-white/5 text-left">
+          <span className="text-[10px] uppercase tracking-widest text-white/40">Spend / Cap</span>
           <div className="flex items-center gap-2">
-            <div className="h-1.5 w-20 rounded bg-white/10 overflow-hidden">
-              <div className="h-full rounded" style={{ width: `${capPct}%`, background: meterColor, boxShadow: `0 0 8px ${meterColor}` }} />
-            </div>
-            <span className="font-mono text-xs text-white/60">{money(stats.creditsRemainingUsd)} left</span>
+            <div className="h-1.5 w-20 rounded bg-white/10 overflow-hidden"><div className="h-full" style={{ width: `${pct}%`, background: meter, boxShadow: `0 0 8px ${meter}` }} /></div>
+            <span className="font-mono text-xs text-white/70">{money(stats.spendUsd, 4)} / {money(cap)}</span>
           </div>
+        </button>
+        <div className="flex flex-col px-2 border-l border-white/5">
+          <span className="text-[10px] uppercase tracking-widest text-white/40">Needs review</span>
+          <span className="font-mono text-sm text-amber-300">{stats.needsReview}</span>
         </div>
-        <Metric label="Model" value={stats.model} accent="var(--color-violet)" />
-        <Metric label="Cycles Today" value={String(stats.cyclesToday)} />
-        <Metric label="Next Run" value={countdown(stats.nextRunAt)} accent="var(--color-cyan)" />
-        <Metric label="Mode" value={stats.tournamentMode} />
       </div>
-
       <div className="flex-1 sm:hidden" />
+
       <div className="flex items-center gap-2">
-        <span className={cn("font-mono text-[11px] px-2 py-1 rounded border",
-          stats.dryRun ? "border-cyan-400/40 text-cyan-300" : "border-magenta-400/60 text-[var(--color-magenta)] glow-magenta")}>
+        <span className={cn("font-mono text-[11px] px-2 py-1 rounded border", stats.dryRun ? "border-cyan-400/40 text-cyan-300" : "border-magenta-400/60 text-[var(--color-magenta)] glow-magenta")}>
           {stats.dryRun ? "DRY-RUN" : "● LIVE"}
         </span>
-        <button onClick={() => onConvene("meeting")} title="Hold a meeting" className="text-[13px] px-1.5 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10">🗣️</button>
-        <button onClick={() => onConvene("training")} title="Run training" className="text-[13px] px-1.5 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10">🎓</button>
-        <button onClick={() => onConvene("coaching")} title="Coach agents" className="text-[13px] px-1.5 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10">🧑‍🏫</button>
         <button onClick={onOpenPalette} title="Command palette (⌘K)" className="font-mono text-[11px] px-2 py-1.5 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">⌘K</button>
-        <button onClick={onOpenBriefing} title="Daily briefing" className="font-mono text-[11px] px-2 py-1.5 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">📋</button>
-        <button onClick={onOpenDirective} className="font-mono text-[11px] px-3 py-1.5 rounded bg-violet-500/20 border border-violet-400/40 text-violet-200 hover:bg-violet-500/30">
-          <span className="sm:hidden">🎯</span><span className="hidden sm:inline">+ DIRECTIVE</span>
+        <button onClick={arm} className={cn("font-mono text-[11px] px-3 py-1.5 rounded border",
+          stats.dryRun ? (armStep > 0 ? "bg-magenta-500/30 border-magenta-400 text-[var(--color-magenta)]" : "bg-magenta-500/15 border-magenta-400/50 text-magenta-200") : "bg-cyan-500/15 border-cyan-400/40 text-cyan-200")}
+          style={{ borderColor: stats.dryRun ? "var(--color-magenta)" : undefined }}>
+          {stats.dryRun ? (armStep === 0 ? "⚡ Arm" : `Confirm ${armStep}/3`) : "↩ Dry-run"}
         </button>
-        <button onClick={onOpenCommissioner} className="font-mono text-[11px] px-3 py-1.5 rounded bg-cyan-500/10 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/20">
-          <span className="sm:hidden">🎛️</span><span className="hidden sm:inline">CONTROL ROOM</span>
-        </button>
-        <motion.button
-          whileTap={{ scale: 0.94 }}
-          onClick={() => api.emergencyStop(!stats.emergencyStop)}
-          className={cn("font-mono text-[11px] px-3 py-1.5 rounded border font-bold",
-            stats.emergencyStop ? "bg-[var(--color-danger)]/30 border-red-400 text-red-200 pulse-active" : "bg-[var(--color-danger)]/15 border-red-500/50 text-red-300 hover:bg-[var(--color-danger)]/25")}>
+        <motion.button whileTap={{ scale: 0.94 }} onClick={() => { api.estop(!stats.emergencyStop).then(onChange); }}
+          className={cn("font-mono text-[11px] px-3 py-1.5 rounded border font-bold", stats.emergencyStop ? "bg-[var(--color-danger)]/30 border-red-400 text-red-200 pulse-active" : "bg-[var(--color-danger)]/15 border-red-500/50 text-red-300")}>
           🛑<span className="hidden sm:inline"> {stats.emergencyStop ? "FROZEN" : "E-STOP"}</span>
         </motion.button>
       </div>

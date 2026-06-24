@@ -27,8 +27,8 @@ export const STATUS_COLOR: Record<string, string> = {
   idle: "var(--color-jade)",
   ready: "var(--color-jade)",
   working: "var(--color-cyan)",
-  "needs-setup": "var(--color-amber)",
   blocked: "var(--color-danger)",
+  unknown: "#7c89a8",
 };
 
 const ACCENTS = ["#ff2bd6", "#22e6ff", "#8b5cff", "#21f3a3", "#ffb020", "#ff6ec7"];

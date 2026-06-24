@@ -1,189 +1,79 @@
-# 🛰️ MISSION CONTROL — Autonomous AI Agency Command Center
+# 🛰️ MISSION CONTROL — a Dashboard for Hermes Agent
 
-A gamified, space‑ship "mission control" that orchestrates a crew of Claude‑powered
-agents doing real business grunt‑work — research, drafts, listings, content,
-analysis — while **you stay in the loop and approve everything**. It grows from a
-single ship into a **self‑expanding org** (directives → opportunities → spawned
-floors) and a **league of competing agencies** racing on net profit.
+A neon space-ship control panel that sits **on top of your local [Hermes Agent](https://hermes-agent.nousresearch.com)** (Nous Research). Hermes is the engine — it owns the agents, memory, scheduling, sub-agents, and tools, and runs models through **OpenRouter**. This dashboard is the **interface**: see what Hermes is doing, give its agents jobs, and approve the results. It does **not** reimplement the agent engine.
 
-> **Honest by design.** Nothing publishes externally without your approval. The
-> whole system defaults to **dry‑run** (zero real spend). Real money and
-> simulated revenue are tracked separately so the headline number stays honest.
+> Human-in-the-loop by default. **Dry-run** until you explicitly arm it; every result is yours to **Approve / Edit / Kill**; a budget cap and global **EMERGENCY STOP** are always on.
 
 ---
 
 ## Quick start
 
 ```bash
-cp .env.example .env        # optional: add ANTHROPIC_API_KEY to run real models
+cp .env.example .env        # add OPENROUTER_API_KEY; leave HERMES_MODE=mock to try it
 npm install
-npm run dev                 # boots backend (:4000) + frontend (:5173)
+npm run dev                 # backend :4000 + dashboard :5173
 ```
 
-Open **http://localhost:5173**. On first run the DB is seeded so the dashboard is
-alive immediately — a Fund HQ crew, three competing agencies, a demo directive
-with ranked opportunities awaiting your approval, and starter drafts in the
-ATTENTION queue — all in **dry‑run**.
-
-- **No API key?** Everything still runs in dry‑run with clearly‑labelled
-  simulated output and `$0` spend.
-- **With a key:** open the **Control Room** and *Arm LIVE mode* (triple‑confirm)
-  to let agents call `claude-opus-4-8`. Spend is bounded by the master fund cap.
-
-Production build: `npm run build && npm start` (Express then serves the built client).
+Open **http://localhost:5173**. With `HERMES_MODE=mock` it runs immediately against sample agents so you can see the loop. Point it at your real Hermes when ready (below).
 
 ---
 
-## What you can do
+## Phase 1 — confirm the Hermes connection first
 
-- **Watch the loop:** agents pick up tasks → call Claude (or simulate) → output
-  is streamed to the feed → **Sentinel** grades quality → **Aegis** safety‑checks
-  external‑facing work → it lands in the **ATTENTION** inbox for you to
-  **Approve / Edit / Kill**.
-- **Forge (the MVP agent):** give it a product → it returns a **validated JSON
-  listing** `{title, description, tags[]}`. Invalid output is never actioned.
-- **Training Academy:** open any agent → run a **Training Run** against golden
-  test cases → see a **letter grade + report‑card sparkline**. Weak grades
-  propose a refined prompt for your approval (versioned, rollback‑able).
-- **Test Lab:** a **feasibility check** ("would this even work?") before you spend.
-- **Directives → Floors:** issue a goal ("find me money") → Commander decomposes
-  it → ranked **opportunities** appear in ATTENTION → approve one → **Architect
-  spawns a purpose‑built floor** of agents (hot‑loaded, no redeploy).
-- **The League:** the **Fleet** view ranks competing agencies by net P&L; the
-  **Arbiter** referees contested opportunities and runs season settlement;
-  winners get more capital, losers are cut, and top doctrines are mutated into
-  the next season.
+The dashboard talks to Hermes through one adapter (`server/src/hermes/index.ts`). Prove the round-trip before anything else:
+
+```bash
+npm run hermes:check -w server          # reads status + agents, sends one instruction, prints the result
+```
+
+It uses `HERMES_MODE`. With `mock` it always works; with `http`/`cli` it exercises your real install.
+
+### Pointing it at your real Hermes
+Set `HERMES_MODE` in `.env`:
+- **`http`** — Hermes exposes a local HTTP gateway. Set `HERMES_BASE_URL` and confirm the endpoint paths in `server/src/hermes/index.ts` (`CONFIG.endpoints`) match your Hermes docs (health / list agents / send-instruction / activity).
+- **`cli`** — no HTTP API. The adapter shells out to `HERMES_CLI` (`hermes agents --json`, `hermes run --agent X "…"`). Adjust the verbs in `CliHermes` to match your CLI.
+
+All transport details live in that one file, so wiring your install is a localized change — the rest of the dashboard is unaffected.
+
+---
+
+## The core loop
+
+1. **Crew roster** (left) + **cutaway ship** (center) show Hermes's agents/sub-agents with live status (idle / working / blocked).
+2. Click an agent → **Assign a job**: a text box that routes your instruction to Hermes via the adapter.
+3. The result **streams live** to the activity feed, then lands in the **Approval inbox** (right) as `needs_review`.
+4. **Approve / Edit / Kill** every result. In **dry-run** approving just files it; once you **Arm** (triple-confirm), approved actions can run for real.
+5. **Cost meter** (top bar) shows running spend vs. your **budget cap** (from each task's OpenRouter cost; optional live credit balance via your key).
+6. **⌘K command palette:** `tell Scout research phone cases`, open an agent, arm, or e-stop.
+
+---
+
+## Guardrails (enforced in the dashboard's action layer)
+
+- **Two hard rules:** nothing that spends money or shares personal info executes without your explicit per-action approval (triple-confirm to arm; default DENY).
+- **Dry-run by default** — nothing acts on the outside world until you arm it.
+- **Budget cap** displayed; halts execution when hit.
+- **Untrusted content** is never auto-executed — you approve every result.
+- **Operator login** (`DASHBOARD_PASSWORD`) before exposing it publicly.
 
 ---
 
 ## Architecture
 
 ```
-client/   Vite + React + TS + Tailwind v4 + Framer Motion   (the dashboard)
-server/   Node + Express + TS + better-sqlite3              (the engine)
-data/     SQLite database (created on first run)
+client/   Vite + React + TS + Tailwind + Framer Motion  — the dashboard UI
+server/   Node + Express + TS                            — Hermes adapter + dashboard API
+  src/hermes/   the ONLY connection to Hermes (mock | http | cli)
+data/     SQLite — the dashboard's OWN state only (approval queue, settings). NOT agent memory.
 ```
 
-- **Realtime:** the server pushes every state change over **SSE** (`/events`);
-  the client holds one connection and debounce‑refetches `/api/state`.
-- **Agents & floors are DATA, hot‑loaded at runtime.** Creating either writes a
-  SQLite row; the scheduler reads rows every tick, so a new agent/floor is live
-  immediately — no code change, no redeploy. `seed-data.ts` seeds Floor 1 (the
-  Command Deck) only.
-- **Hierarchy:** **Fund → Agency → Floor (tree) → Agent.**
-- **Tool Registry** (`registry.ts`): the vetted capabilities agents can be
-  granted. The Factory composes agents only from these. External integrations
-  (Shopify, TikTok, …) ship **stubbed** with `configured: false` and surface as
-  blockers — they never fake a real action.
-- **Ledger** (`ledger.ts`): real API spend = tokens × per‑model price; simulated
-  revenue tracked separately. Enforces the master fund cap, per‑agency drawdown
-  breakers, and the low‑credit warning.
-- **Governance** (`governance.ts`): dry‑run, emergency stop, pause, recursion
-  caps (depth / agents‑per‑floor / active‑floors) — low‑level gates, not
-  policies an agent can reason around.
+Realtime is **SSE** (`/events`). The dashboard's SQLite holds tasks + settings; **agent memory/scheduling stays in Hermes.**
 
-Key server modules: `engine.ts` (execution + critic + safety + grading),
-`scheduler.ts` (cycle/event/solo triggers), `factory.ts` (Architect — spawns
-agents/floors/agencies), `directives.ts` (directive→opportunity pipeline),
-`league.ts` (leaderboard / Arbiter / settlement / evolution / analytics),
-`academy.ts` (golden tests + grading + report cards), `seed.ts` (first‑run data).
+### How to…
+- **Add/see an agent:** agents come from Hermes — they appear automatically in the roster and as ship bays. To theme a bay's character/colour, edit the `CHARS`/`TOOLS`/`TINTS` arrays in `client/src/components/ShipView.tsx`.
+- **Set the OpenRouter key:** `OPENROUTER_API_KEY` in `.env` (Hermes also needs it; the dashboard uses it only to read spend/credits).
+- **Arm real actions:** top bar **⚡ Arm** → triple-confirm → `LIVE`. Return to dry-run any time.
 
----
-
-## Guardrails (always on)
-
-- **Dry‑run by default**; live mode requires an API key **and** a triple‑confirm.
-- **Nothing external publishes without approval** — every draft hits the inbox.
-- **Master fund cap + per‑agency drawdown breakers** auto‑pause/liquidate losers.
-- **Global EMERGENCY STOP** freezes every floor and agent instantly.
-- **Bounded spawning** — depth/breadth/active‑floor caps; every floor has a
-  budget and a definition‑of‑done, so the org can always terminate.
-- **Validated outputs only** — schema‑checked JSON; invalid output is never acted on.
-- **Real vs. simulated money are never blended.**
-- Every spawn, decision, and approval is written to an **audit log** (`/api/audit`).
-
----
-
-## How‑to
-
-### Add an agent
-Two ways:
-1. **From the UI:** top bar → **+ DIRECTIVE → New Agent**, describe it in plain
-   language → Architect drafts a config from the Tool Registry → approve it in
-   ATTENTION → it's hot‑loaded live.
-2. **Seed it permanently:** add an entry to `FLOOR1_CREW` in
-   `server/src/seed-data.ts` (id, callsign, role, bay, trigger, `allowedTools`,
-   `systemPrompt`). Delete `data/mission-control.db` to re‑seed.
-
-### Add a golden test case (Training Academy)
-- **From the UI:** open the agent → Test Lab (or `POST /api/agents/:id/tests`).
-- **In code:** add an `addTestCase(agentKey, name, input, rubric)` call in
-  `seedGoldenTests()` (`server/src/academy.ts`). Grading combines deterministic
-  checks (schema, field quality) with a heuristic/judge score.
-
-### Wire a real integration (swap a stub for a real API)
-In `server/src/registry.ts`, find the stubbed tool (e.g. `shopify`):
-1. Implement its `publish()` with the real SDK/HTTP call.
-2. Set `configured: true` once credentials exist (read from `.env` / a secret
-   store — never log them).
-3. The approval gate is unchanged: operator approval is what authorizes
-   `publish()` to run. Everything else (queues, ledger, blockers) just works.
-
-### Secure it before hosting (operator login)
-The dashboard and API are open by default for local dev. **Before exposing it
-beyond localhost, set a password** in `.env`:
-```
-DASHBOARD_PASSWORD=something-strong
-COOKIE_SECURE=true          # when served over HTTPS
-```
-With it set, the app shows a login screen and every API/SSE request requires the
-session cookie (issued on login, HMAC-signed, httpOnly). Without it, the server
-prints an "AUTH DISABLED" warning on boot. Log out from the Control Room.
-
-### Go from demo to real
-1. `SEED_DEMO=false` in `.env` + delete `data/mission-control.db` → clean books
-   (Fund HQ crew + season only; no demo agencies/revenue/directive).
-2. Add `ANTHROPIC_API_KEY`, restart, and **Arm LIVE** in the Control Room.
-3. Set `DASHBOARD_PASSWORD` and run it on a persistent host (not the sandbox).
-4. Wire the real integration(s) you need (below). In live mode the app never
-   fabricates revenue — real income only comes from a wired integration.
-
-### Arm real actions
-Set `ANTHROPIC_API_KEY` in `.env`, then in the **Control Room** click *Arm LIVE
-mode* and complete the triple‑confirm. Real spend is bounded by
-`MASTER_FUND_CAP_USD`; hitting it engages EMERGENCY STOP automatically.
-
----
-
-## Configuration (`.env`)
-
-| Var | Purpose |
-|---|---|
-| `ANTHROPIC_API_KEY` | Enables real models. Absent → dry‑run only. |
-| `MODEL` | Default model (`claude-opus-4-8`). |
-| `MASTER_FUND_CAP_USD` | Real‑spend ceiling across all agencies (AUM). |
-| `DRAWDOWN_PCT` | Per‑agency drawdown breaker. |
-| `MAX_FLOOR_DEPTH` / `MAX_AGENTS_PER_FLOOR` / `MAX_ACTIVE_FLOORS` | Recursion caps. |
-| `BUDGET_CAP_USD`, `SEED_REVENUE_USD`, `PORT` | Misc. |
-
----
-
-## Status & honest scope
-
-This is a working **vertical slice across all phases** of the master brief, built
-dry‑run‑first:
-
-- **Solid:** the core execution loop (Forge validated‑JSON listings, streaming,
-  cost), Approve/Edit/Kill inbox, Sentinel QA + bounded retry, Aegis safety gate,
-  Training Academy (golden tests, grades, prompt‑improvement proposals),
-  Test Lab feasibility, agents/floors/agencies as hot‑loaded data, the
-  directive→opportunity→floor pipeline, the Factory, the League
-  (leaderboard / Arbiter / contested pool / settlement / doctrine evolution),
-  full governance (fund cap, drawdown breakers, emergency stop, recursion caps),
-  memory/lessons, shared board, audit log, and a neon realtime dashboard.
-- **Lean / heuristic for now (clearly marked in code):** the prompt‑improvement
-  refiner, what‑if simulation, and strategy mutation are functional but simple;
-  the Claude *judge* path activates in live mode while dry‑run uses deterministic
-  grading. These are honest stand‑ins, not fake data.
+> **Fleet view (later, optional):** running multiple Hermes instances as competing "agencies" needs a separate orchestrator script — the adapter is the clean seam for it; it's intentionally not built yet.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
