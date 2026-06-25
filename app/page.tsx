@@ -9,11 +9,13 @@ import ToolManager from "./components/ToolManager";
 import ModelRouter from "./components/ModelRouter";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import PluginStore from "./components/PluginStore";
+import QuantDesk from "./components/QuantDesk";
 
-type View = "ship" | "tools" | "router" | "analytics" | "plugins";
+type View = "ship" | "quant" | "tools" | "router" | "analytics" | "plugins";
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "ship", label: "Ship Deck", icon: "🛸" },
+  { id: "quant", label: "Quant Desk", icon: "💹" },
   { id: "tools", label: "Tool Manager", icon: "🧰" },
   { id: "router", label: "Model Router", icon: "🧭" },
   { id: "analytics", label: "Analytics", icon: "📈" },
@@ -126,6 +128,7 @@ export default function Home() {
               />
             </div>
           )}
+          {view === "quant" && <QuantDesk />}
           {view === "tools" && <ToolManager />}
           {view === "router" && <ModelRouter />}
           {view === "analytics" && <AnalyticsDashboard />}

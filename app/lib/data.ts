@@ -215,6 +215,18 @@ const agentSeeds: AgentSeed[] = [
     relationships: ["a-quill"], certifications: ["Sales L2"],
   },
   {
+    id: "a-oracle", name: "Oracle", avatar: "🔮", department: "research",
+    role: "Quant Analyst", skills: ["Edge detection", "Volatility modeling", "Kelly sizing"],
+    memory: ["TradingView for price + vol", "Polymarket model vs market price = edge", "Code word gates the picks"],
+    goals: ["Surface +EV trades daily", "Flag mispriced markets", "Never overbet (half-Kelly cap)"],
+    personality: "Cold, probabilistic, allergic to hype and 'sure things'.",
+    grade: "S", xp: 8600, xpToNext: 9500, revenue: 61000, cost: 5200,
+    currentTask: "Scanning Polymarket for edge",
+    homePodId: "pod-6", workQueue: ["Rank top 4 markets", "Update vol estimates", "Run signals scan"],
+    learningHistory: ["Calibrated lognormal model", "Tuned Kelly fraction to half"],
+    relationships: ["a-scout", "a-ledger", "a-cipher"], certifications: ["Quant L4"],
+  },
+  {
     id: "a-maker", name: "Maker", avatar: "🛠️", department: "product",
     role: "Product Builder", skills: ["Digital products", "QA", "Packaging"],
     memory: ["Every deliverable passes QA", "Bundle previews + keywords"],
