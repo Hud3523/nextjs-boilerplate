@@ -107,8 +107,8 @@ The connector registry already encodes which shape each integration uses
 - **Data flow:** any agent → AI Core / Model Router → Hermes → memory recall +
   skill execution + routed model response.
 
-### Plugin schema — `higgsfield-ai/skills/.claude-plugin`
-- Used as the **reference schema** for the in-app Plugin Store
+### Plugin schema — Claude plugin marketplace
+- The in-app Plugin Store follows the Claude plugin marketplace schema
   (`marketplace.json` + `plugin.json`). New tools/models register as plugins so
   the platform extends without redesign.
 

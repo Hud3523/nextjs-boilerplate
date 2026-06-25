@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useShipSimulation } from "./hooks/useShipSimulation";
 import { agentMap, departments, initialAgents } from "./lib/data";
 import ShipMap from "./components/ShipMap";
+import ActivityLog from "./components/ActivityLog";
 import AgentDetailPanel from "./components/AgentDetailPanel";
 import ToolManager from "./components/ToolManager";
 import ModelRouter from "./components/ModelRouter";
@@ -14,12 +15,12 @@ import QuantDesk from "./components/QuantDesk";
 type View = "ship" | "quant" | "tools" | "router" | "analytics" | "plugins";
 
 const nav: { id: View; label: string; icon: string }[] = [
-  { id: "ship", label: "Ship Deck", icon: "🛸" },
-  { id: "quant", label: "Quant Desk", icon: "💹" },
-  { id: "tools", label: "Tool Manager", icon: "🧰" },
-  { id: "router", label: "Model Router", icon: "🧭" },
-  { id: "analytics", label: "Analytics", icon: "📈" },
-  { id: "plugins", label: "Plugin Store", icon: "🧩" },
+  { id: "ship", label: "SHIP DECK", icon: "▚" },
+  { id: "quant", label: "QUANT DESK", icon: "▲" },
+  { id: "tools", label: "TOOL MANAGER", icon: "⛒" },
+  { id: "router", label: "MODEL ROUTER", icon: "◇" },
+  { id: "analytics", label: "ANALYTICS", icon: "▤" },
+  { id: "plugins", label: "PLUGIN STORE", icon: "⬡" },
 ];
 
 export default function Home() {
@@ -27,7 +28,6 @@ export default function Home() {
   const [view, setView] = useState<View>("ship");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Live snapshot from the simulation if available, else seed roster.
   const selectedAgent = useMemo(() => {
     if (!selectedId) return null;
     return agents.find((a) => a.id === selectedId) ?? agentMap[selectedId] ?? null;
@@ -35,105 +35,112 @@ export default function Home() {
 
   const working = agents.filter((a) => a.state === "working").length;
   const walking = agents.filter((a) => a.state === "walking").length;
+  const meeting = agents.filter((a) => a.state === "meeting").length;
 
   return (
-    <div className="min-h-screen">
-      {/* top command bar */}
-      <header className="glass-strong sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl float">🛰️</span>
-          <div>
-            <h1 className="text-base font-semibold leading-tight sm:text-lg">
-              HERMES <span className="holo-text">OMEGA INFINITY</span>
-            </h1>
-            <p className="text-[0.65rem] text-slate-500 sm:text-xs">
-              AI Company OS · CEO Command Deck
-            </p>
-          </div>
-        </div>
-        <div className="hidden items-center gap-4 text-[0.7rem] text-slate-400 md:flex">
-          <Status label="Crew" value={`${initialAgents.length}`} dot="#38bdf8" />
-          <Status label="Working" value={`${working}`} dot="#34d399" />
-          <Status label="In transit" value={`${walking}`} dot="#38bdf8" />
-          <Status
-            label="Meeting"
-            value={meetingActive ? "ACTIVE" : "—"}
-            dot={meetingActive ? "#f472b6" : "#475569"}
-          />
-        </div>
-      </header>
+    <div className="crt-flicker min-h-screen p-1.5 sm:p-3">
+      {/* fixed scanline + vignette overlay */}
+      <div className="crt-overlay" />
 
-      <div className="mx-auto flex max-w-[1400px] gap-4 px-3 py-4 sm:px-5">
-        {/* side nav */}
-        <nav className="glass sticky top-[68px] hidden h-fit w-44 shrink-0 flex-col gap-1 rounded-xl p-2 sm:flex">
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => setView(n.id)}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                view === n.id
-                  ? "bg-sky-400/15 text-sky-200"
-                  : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              <span>{n.icon}</span>
-              {n.label}
-            </button>
-          ))}
-          <div className="mt-2 border-t border-[var(--border)] pt-2">
-            <p className="px-3 text-[0.6rem] uppercase tracking-wide text-slate-600">Departments</p>
-            <div className="mt-1 max-h-48 space-y-0.5 overflow-y-auto px-1">
-              {departments.map((d) => (
-                <div key={d.id} className="flex items-center gap-2 px-2 py-1 text-[0.7rem] text-slate-400">
-                  <span className="h-2 w-2 rounded-full" style={{ background: d.accent }} />
-                  {d.name}
-                </div>
-              ))}
+      <div className="crt-frame mx-auto flex min-h-[calc(100vh-12px)] max-w-[1600px] flex-col overflow-hidden rounded-lg sm:min-h-[calc(100vh-24px)]">
+        {/* ---- top readout bar ---- */}
+        <header className="glass-strong flex items-center justify-between gap-3 border-b-2 border-[var(--green)] px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg holo-text">◈</span>
+            <div className="leading-none">
+              <h1 className="text-sm font-bold tracking-[0.18em] holo-text sm:text-base">
+                HERMES·OMEGA·INFINITY
+              </h1>
+              <p className="mt-0.5 text-[0.55rem] tracking-[0.3em] text-[var(--green-dim)]">
+                AI COMPANY OS // CEO COMMAND DECK
+              </p>
             </div>
           </div>
-        </nav>
+          <div className="hidden items-stretch gap-0 md:flex">
+            <Readout label="CREW" value={`${initialAgents.length}`} />
+            <Readout label="WORK" value={`${working}`} />
+            <Readout label="TRANSIT" value={`${walking}`} />
+            <Readout label="MEET" value={meetingActive ? `${meeting}` : "0"} hot={meetingActive} />
+            <Readout label="SYS" value="ONLINE" />
+          </div>
+        </header>
 
-        {/* mobile nav */}
-        <div className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-[var(--border)] bg-[rgba(8,10,20,0.95)] px-2 py-2 backdrop-blur sm:hidden">
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => setView(n.id)}
-              className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[0.6rem] ${
-                view === n.id ? "text-sky-300" : "text-slate-400"
-              }`}
-            >
-              <span className="text-base">{n.icon}</span>
-              {n.label.split(" ")[0]}
-            </button>
-          ))}
-        </div>
-
-        {/* main view */}
-        <main className="min-w-0 flex-1 pb-20 sm:pb-0">
-          {view === "ship" && (
-            <div className="space-y-3">
-              <div>
-                <h2 className="text-xl font-semibold holo-text">Flagship Deck</h2>
-                <p className="text-sm text-slate-400">
-                  {initialAgents.length} AI crew live aboard. Watch them work in their pods,
-                  roam the ship, and gather in the Meeting Hall for all-hands.
-                </p>
+        {/* ---- body: nav | main ---- */}
+        <div className="flex min-h-0 flex-1">
+          {/* side nav */}
+          <nav className="hidden w-40 shrink-0 flex-col gap-1 border-r border-[var(--border-dim)] p-2 sm:flex">
+            {nav.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => setView(n.id)}
+                className={`flex items-center gap-2 border px-2 py-1.5 text-left text-[0.62rem] font-bold tracking-widest transition-colors ${
+                  view === n.id
+                    ? "border-[var(--green)] bg-[var(--green)]/15 text-[var(--green)] glow"
+                    : "border-transparent text-[var(--green-dim)] hover:border-[var(--border-dim)] hover:text-[var(--green)]"
+                }`}
+              >
+                <span className="text-[0.7rem]">{n.icon}</span>
+                {n.label}
+              </button>
+            ))}
+            <div className="mt-2 border-t border-[var(--border-dim)] pt-2">
+              <p className="px-1 text-[0.55rem] tracking-widest text-[var(--green-deep)]">DEPARTMENTS</p>
+              <div className="mt-1 max-h-56 space-y-0.5 overflow-y-auto">
+                {departments.map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 px-1 py-0.5 text-[0.58rem] text-[var(--green-dim)]">
+                    <span className="h-2 w-2 rounded-[1px]" style={{ background: d.accent, boxShadow: `0 0 4px ${d.accent}` }} />
+                    {d.name.toUpperCase()}
+                  </div>
+                ))}
               </div>
-              <ShipMap
-                agents={agents}
-                meetingActive={meetingActive}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-              />
             </div>
-          )}
-          {view === "quant" && <QuantDesk />}
-          {view === "tools" && <ToolManager />}
-          {view === "router" && <ModelRouter />}
-          {view === "analytics" && <AnalyticsDashboard />}
-          {view === "plugins" && <PluginStore />}
-        </main>
+          </nav>
+
+          {/* mobile nav */}
+          <div className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t-2 border-[var(--green)] bg-[#02080c]/95 px-1 py-1.5 sm:hidden">
+            {nav.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => setView(n.id)}
+                className={`flex flex-col items-center gap-0.5 px-1.5 py-0.5 text-[0.5rem] tracking-wider ${
+                  view === n.id ? "text-[var(--green)] glow" : "text-[var(--green-dim)]"
+                }`}
+              >
+                <span className="text-sm">{n.icon}</span>
+                {n.label.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+
+          {/* main */}
+          <main className="min-w-0 flex-1 overflow-y-auto p-2 pb-16 sm:p-3 sm:pb-3">
+            {view === "ship" ? (
+              <div className="flex h-full min-h-[70vh] flex-col gap-2 lg:flex-row">
+                {/* activity log column */}
+                <div className="h-48 shrink-0 lg:h-auto lg:w-60">
+                  <ActivityLog agents={agents} meetingActive={meetingActive} />
+                </div>
+                {/* ship map */}
+                <div className="min-w-0 flex-1">
+                  <ShipMap
+                    agents={agents}
+                    meetingActive={meetingActive}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="text-[var(--foreground)]">
+                {view === "quant" && <QuantDesk />}
+                {view === "tools" && <ToolManager />}
+                {view === "router" && <ModelRouter />}
+                {view === "analytics" && <AnalyticsDashboard />}
+                {view === "plugins" && <PluginStore />}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
 
       <AgentDetailPanel agent={selectedAgent} onClose={() => setSelectedId(null)} />
@@ -141,12 +148,14 @@ export default function Home() {
   );
 }
 
-function Status({ label, value, dot }: { label: string; value: string; dot: string }) {
+function Readout({ label, value, hot }: { label: string; value: string; hot?: boolean }) {
   return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ background: dot }} />
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-200">{value}</span>
-    </span>
+    <div
+      className="flex flex-col items-center justify-center border-l border-[var(--border-dim)] px-3 py-0.5"
+      style={hot ? { color: "#ff8c42" } : undefined}
+    >
+      <span className="text-[0.55rem] tracking-widest text-[var(--green-dim)]">{label}</span>
+      <span className={`text-sm font-bold ${hot ? "" : "text-[var(--green)] glow"}`}>{value}</span>
+    </div>
   );
 }

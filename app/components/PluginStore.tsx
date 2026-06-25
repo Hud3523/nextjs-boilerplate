@@ -1,7 +1,7 @@
 "use client";
 
 // Plugin Store — models its catalog on the Claude plugin marketplace schema
-// (marketplace.json + plugin.json), as used by higgsfield-ai/skills.
+// (marketplace.json + plugin.json).
 
 type Plugin = {
   name: string;
