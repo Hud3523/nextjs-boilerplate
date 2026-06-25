@@ -6,7 +6,7 @@ project. Skills live in `.claude/skills/<name>/SKILL.md`, slash commands in
 
 ## Summary
 
-- **Skills:** 374 (each `.claude/skills/<name>/SKILL.md`, with any `references/`,
+- **Skills:** 375 (each `.claude/skills/<name>/SKILL.md`, with any `references/`,
   `scripts/`, `assets/`, `expected_outputs/` support files preserved)
 - **Commands:** 41 (`.claude/commands/*.md`)
 - **Agents:** 35 (`.claude/agents/*.md`)
@@ -25,6 +25,7 @@ project. Skills live in `.claude/skills/<name>/SKILL.md`, slash commands in
 | [anthropics/claude-code · code-review](https://github.com/anthropics/claude-code/blob/main/plugins/code-review/README.md) | `code-review` slash command |
 | [anthropics/claude-code-security-review](https://github.com/anthropics/claude-code-security-review) | `security-review` slash command |
 | [alirezarezvani/claude-skills](https://github.com/alirezarezvani/claude-skills) | ~345 skills, plus its commands and agents |
+| [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | `impeccable` design skill (23 commands, 44 detector rules, reference/ + scripts/) |
 
 ## Notes
 
