@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #05060d;
+  --foreground: #e6edf7;
+  --panel: rgba(18, 24, 42, 0.55);
+  --panel-strong: rgba(20, 27, 48, 0.85);
+  --border: rgba(120, 160, 255, 0.18);
+  --accent: #38bdf8;
+  --accent-2: #a78bfa;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Deep-space backdrop with a subtle holographic grid + glow. */
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(167, 139, 250, 0.16), transparent 60%),
+    radial-gradient(1000px 500px at 0% 110%, rgba(56, 189, 248, 0.14), transparent 60%),
+    linear-gradient(180deg, #05060d 0%, #070912 100%);
+}
+
+/* ---- Reusable glassmorphism + holographic utilities ---- */
+.glass {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass-strong {
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.holo-text {
+  background: linear-gradient(90deg, #38bdf8, #a78bfa, #e879f9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(120, 200, 255, 0.04) 0px,
+    rgba(120, 200, 255, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+}
+
+/* ---- Animations ---- */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+.pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.float { animation: float 5s ease-in-out infinite; }
+
+@keyframes sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+.sweep { animation: sweep 6s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-glow, .float, .sweep { animation: none !important; }
+}
+
+/* Thin custom scrollbar to match the OS feel. */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(120, 160, 255, 0.25);
+  border-radius: 8px;
 }
