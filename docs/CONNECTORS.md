@@ -12,6 +12,42 @@ create, publish, and sell.
 
 ---
 
+## Live wiring (implemented)
+
+All four linked connectors now have **real server-side adapters** with live
+health checks and test calls. Nothing secret reaches the browser.
+
+**Where the code lives**
+- Adapters: `app/lib/server/connectors/` (`tradingview.ts`, `polymarket.ts`,
+  `openclaw.ts`, `hermes.ts`), behind a shared `ServerConnector` contract
+  (`types.ts`) and registered in `index.ts`.
+- API: `GET /api/connectors` (live health for all) and
+  `POST /api/connectors/:id/test` (runs a representative capability).
+- UI: the Tool Manager fetches live health on load, shows a **LIVE** badge, and
+  has a **Run test call** button per connector.
+
+**Setup**
+1. `cp .env.example .env.local` and fill in credentials (see table below).
+2. `npm run dev`, open the **Tool Manager**, click **Run test call**.
+
+**What each test does**
+- **TradingView** → fetches a live `BINANCE:BTCUSDT` quote (no creds needed).
+- **Polymarket/Bitquery** → queries recent Polymarket trades on Polygon via
+  Bitquery GraphQL (needs `BITQUERY_OAUTH_TOKEN`).
+- **OpenClaw** → pings your running OpenClaw service status endpoint.
+- **Hermes** → lists models from your running Hermes service.
+
+> Network note: TradingView uses a websocket and Bitquery/OpenClaw/Hermes use
+> HTTPS. In restricted/proxied environments a health check may report `offline`
+> even though the code is correct — it will go green once the service is
+> reachable with valid credentials.
+
+**Required env vars** — see `.env.example`. Summary:
+`TV_SESSION`/`TV_SIGNATURE` (optional), `BITQUERY_OAUTH_TOKEN` (required),
+`OPENCLAW_BASE_URL`+`OPENCLAW_API_KEY`, `HERMES_BASE_URL`+`HERMES_API_KEY`.
+
+---
+
 ## How connectors attach (two shapes)
 
 1. **In-process module** — a Node/TypeScript adapter that runs inside this

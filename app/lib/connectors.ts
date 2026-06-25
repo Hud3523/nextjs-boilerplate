@@ -138,6 +138,10 @@ export const connectors: Connector[] = [
   },
 ];
 
+// Connectors with a live server-side adapter (real health checks + test calls).
+// Keep in sync with app/lib/server/connectors/index.ts.
+export const liveConnectorIds = ["tradingview", "polymarket", "openclaw", "hermes"];
+
 export const connectorCategoryLabels: Record<string, string> = {
   "market-data": "Market Data",
   "agent-runtime": "Agent Runtime",

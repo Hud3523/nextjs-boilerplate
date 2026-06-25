@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { connectors, connectorCategoryLabels } from "../lib/connectors";
+import { useCallback, useEffect, useState } from "react";
+import { connectors, connectorCategoryLabels, liveConnectorIds } from "../lib/connectors";
 import type { Connector, ConnectorHealth } from "../lib/types";
 
 const healthStyle: Record<ConnectorHealth, { dot: string; label: string }> = {
@@ -17,68 +17,183 @@ const integrationLabel: Record<Connector["integration"], string> = {
   reference: "Reference / schema",
 };
 
+type LiveHealth = {
+  status: ConnectorHealth;
+  detail?: string;
+  latencyMs?: number;
+};
+type LiveEntry = { configured: boolean; health: LiveHealth };
+type TestState = {
+  loading: boolean;
+  ok?: boolean;
+  data?: unknown;
+  error?: string;
+  latencyMs?: number;
+};
+
 export default function ToolManager() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [live, setLive] = useState<Record<string, LiveEntry>>({});
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [checkedAt, setCheckedAt] = useState<string | null>(null);
+  const [tests, setTests] = useState<Record<string, TestState>>({});
+
+  const refreshHealth = useCallback(async () => {
+    setLiveLoading(true);
+    try {
+      const res = await fetch("/api/connectors", { cache: "no-store" });
+      const json = await res.json();
+      const map: Record<string, LiveEntry> = {};
+      for (const c of json.connectors ?? []) map[c.id] = { configured: c.configured, health: c.health };
+      setLive(map);
+      setCheckedAt(json.checkedAt ?? null);
+    } catch {
+      /* leave static fallback in place */
+    } finally {
+      setLiveLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshHealth();
+  }, [refreshHealth]);
+
+  const runTest = useCallback(async (id: string) => {
+    setTests((t) => ({ ...t, [id]: { loading: true } }));
+    try {
+      const res = await fetch(`/api/connectors/${id}/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const json = await res.json();
+      setTests((t) => ({
+        ...t,
+        [id]: { loading: false, ok: json.ok, data: json.data, error: json.error, latencyMs: json.latencyMs },
+      }));
+    } catch (e) {
+      setTests((t) => ({ ...t, [id]: { loading: false, ok: false, error: String(e) } }));
+    }
+  }, []);
 
   return (
     <div className="space-y-4">
-      <header>
-        <h2 className="text-xl font-semibold holo-text">Tool Manager</h2>
-        <p className="text-sm text-slate-400">
-          Every external capability is a connector. Agents request tools through here —
-          nothing is hardcoded. Credentials are stored as secrets and never exposed to
-          agents that don&apos;t need them.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold holo-text">Tool Manager</h2>
+          <p className="text-sm text-slate-400">
+            Every external capability is a connector. Agents request tools through here —
+            nothing is hardcoded. Credentials live in env/secret storage and never reach the client.
+          </p>
+        </div>
+        <button
+          onClick={refreshHealth}
+          disabled={liveLoading}
+          className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-slate-200 hover:bg-white/5 disabled:opacity-50"
+        >
+          {liveLoading ? "Checking…" : "↻ Refresh health"}
+        </button>
       </header>
+      {checkedAt && (
+        <p className="text-[0.7rem] text-slate-500">
+          Live health checked {new Date(checkedAt).toLocaleTimeString()} · 4 connectors wired
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {connectors.map((c) => {
-          const h = healthStyle[c.health];
+          const isLive = liveConnectorIds.includes(c.id);
+          const liveEntry = live[c.id];
+          // Live status overrides the static placeholder when available.
+          const status: ConnectorHealth = liveEntry?.health.status ?? c.health;
+          const h = healthStyle[status];
           const open = openId === c.id;
+          const test = tests[c.id];
+
           return (
-            <div key={c.id} className="glass rounded-xl p-4">
+            <div key={c.id} className={`glass rounded-xl p-4 ${isLive ? "ring-1 ring-sky-400/30" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-medium">{c.name}</h3>
+                  <h3 className="flex items-center gap-2 font-medium">
+                    {c.name}
+                    {isLive && (
+                      <span className="rounded-full bg-sky-400/15 px-1.5 py-0.5 text-[0.55rem] text-sky-200">
+                        LIVE
+                      </span>
+                    )}
+                  </h3>
                   <p className="text-[0.7rem] text-slate-500">
                     {connectorCategoryLabels[c.category]} · v{c.version}
                   </p>
                 </div>
                 <span className="flex items-center gap-1.5 whitespace-nowrap text-[0.7rem] text-slate-400">
-                  <span className="h-2 w-2 rounded-full" style={{ background: h.dot }} />
+                  <span
+                    className={`h-2 w-2 rounded-full ${isLive && liveLoading ? "pulse-glow" : ""}`}
+                    style={{ background: h.dot }}
+                  />
                   {h.label}
                 </span>
               </div>
 
               <p className="mt-2 text-sm text-slate-300">{c.description}</p>
 
-              {c.repo && (
-                <p className="mt-2 font-mono text-[0.7rem] text-sky-300/80">{c.repo}</p>
+              {isLive && liveEntry?.health.detail && (
+                <p className="mt-2 truncate text-[0.7rem] text-slate-400" title={liveEntry.health.detail}>
+                  {liveEntry.health.detail}
+                  {liveEntry.health.latencyMs != null && (
+                    <span className="text-slate-500"> · {liveEntry.health.latencyMs}ms</span>
+                  )}
+                </p>
               )}
+
+              {c.repo && <p className="mt-2 font-mono text-[0.7rem] text-sky-300/80">{c.repo}</p>}
 
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <Tag>{integrationLabel[c.integration]}</Tag>
-                {c.requiredCredentials.some((r) => r.required) && (
+                {isLive && liveEntry && (
+                  <Tag tone={liveEntry.configured ? "ok" : "warn"}>
+                    {liveEntry.configured ? "Configured" : "Add credentials"}
+                  </Tag>
+                )}
+                {!isLive && c.requiredCredentials.some((r) => r.required) && (
                   <Tag tone="warn">Credentials required</Tag>
                 )}
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-center text-[0.7rem]">
-                <div className="rounded-lg bg-white/[0.03] py-1.5">
-                  <div className="text-sm font-semibold">{c.callsToday}</div>
-                  <div className="text-slate-500">calls today</div>
+              {isLive && (
+                <div className="mt-3 space-y-2">
+                  <button
+                    onClick={() => runTest(c.id)}
+                    disabled={test?.loading}
+                    className="w-full rounded-lg border border-sky-400/50 bg-sky-400/10 py-1.5 text-sm text-sky-200 hover:bg-sky-400/20 disabled:opacity-50"
+                  >
+                    {test?.loading ? "Running…" : "▶ Run test call"}
+                  </button>
+                  {test && !test.loading && (
+                    <div
+                      className={`rounded-lg border p-2 text-[0.7rem] ${
+                        test.ok ? "border-emerald-500/30 bg-emerald-500/5" : "border-red-500/30 bg-red-500/5"
+                      }`}
+                    >
+                      <div className="mb-1 flex justify-between">
+                        <span className={test.ok ? "text-emerald-300" : "text-red-300"}>
+                          {test.ok ? "✓ Success" : "✕ Failed"}
+                        </span>
+                        {test.latencyMs != null && <span className="text-slate-500">{test.latencyMs}ms</span>}
+                      </div>
+                      <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-slate-400">
+                        {test.ok ? JSON.stringify(test.data, null, 2) : test.error}
+                      </pre>
+                    </div>
+                  )}
                 </div>
-                <div className="rounded-lg bg-white/[0.03] py-1.5">
-                  <div className="text-sm font-semibold">{(c.errorRate * 100).toFixed(1)}%</div>
-                  <div className="text-slate-500">error rate</div>
-                </div>
-              </div>
+              )}
 
               <button
                 onClick={() => setOpenId(open ? null : c.id)}
                 className="mt-3 w-full rounded-lg border border-[var(--border)] py-1.5 text-sm text-slate-200 hover:bg-white/5"
               >
-                {open ? "Hide configuration" : "Configure connector"}
+                {open ? "Hide configuration" : "Configuration & credentials"}
               </button>
 
               {open && (
@@ -92,13 +207,12 @@ export default function ToolManager() {
                       ))}
                     </div>
                   </Field>
-                  <Field label="Required credentials">
+                  <Field label="Required credentials (set as env vars)">
                     <ul className="space-y-1">
                       {c.requiredCredentials.map((cred) => (
                         <li key={cred.key} className="flex items-center justify-between text-[0.75rem]">
                           <span className="text-slate-300">
-                            {cred.label}{" "}
-                            <code className="text-slate-500">({cred.key})</code>
+                            {cred.label} <code className="text-slate-500">({cred.key})</code>
                           </span>
                           <span className="text-slate-500">
                             {cred.secret ? "🔒 secret" : "public"}
@@ -108,9 +222,11 @@ export default function ToolManager() {
                       ))}
                     </ul>
                   </Field>
-                  <p className="text-[0.7rem] text-slate-500">
-                    Setup is mocked in this build. Wiring the live adapter is the next phase.
-                  </p>
+                  {!isLive && (
+                    <p className="text-[0.7rem] text-slate-500">
+                      Adapter not yet wired — see docs/CONNECTORS.md to add it.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -121,16 +237,15 @@ export default function ToolManager() {
   );
 }
 
-function Tag({ children, tone }: { children: React.ReactNode; tone?: "warn" }) {
+function Tag({ children, tone }: { children: React.ReactNode; tone?: "warn" | "ok" }) {
+  const styles =
+    tone === "warn"
+      ? { background: "rgba(251,191,36,0.15)", color: "#fcd34d" }
+      : tone === "ok"
+        ? { background: "rgba(52,211,153,0.15)", color: "#6ee7b7" }
+        : { background: "rgba(120,160,255,0.12)", color: "#bcd3ff" };
   return (
-    <span
-      className="rounded-full px-2 py-0.5 text-[0.65rem]"
-      style={
-        tone === "warn"
-          ? { background: "rgba(251,191,36,0.15)", color: "#fcd34d" }
-          : { background: "rgba(120,160,255,0.12)", color: "#bcd3ff" }
-      }
-    >
+    <span className="rounded-full px-2 py-0.5 text-[0.65rem]" style={styles}>
       {children}
     </span>
   );
