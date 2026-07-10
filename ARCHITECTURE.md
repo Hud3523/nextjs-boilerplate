@@ -151,7 +151,7 @@ Workspaces from day one (retrofitting multi-tenancy is the classic SaaS regret �
 | `site_versions` | id, site_id, workspace_id, `parent_id` (nullable), `schema jsonb`, message, author_id, created_at | **Immutable, append-only.** The version *tree*: parent pointers form the DAG; a branch is just a named moving pointer. Full snapshots, not deltas — DECISIONS #5 |
 | `branches` | id, site_id, name, `head_version_id` | branch = create pointer at any version; compare = render two versions side-by-side; merge = per-block three-way merge (§7.4) |
 | `deployments` | id, site_id, version_id, status, published_at | audit trail of publishes |
-| `domains` | id, site_id, hostname, `status: pending\|verifying\|active`, verification_token | never serves traffic until TXT-verified (§11) |
+| `domains` | id, site_id, hostname, `status: pending\|verifying\|active`, verification_token, `billing_active`, stripe_subscription_item_id | never serves traffic until TXT-verified (§11); custom domains are a **paid add-on** — serves only while the add-on is paid, else falls back to the subdomain (§4) |
 | `assets` | id, workspace_id, storage_path, kind, alt, width/height, blurhash | Supabase Storage; images auto-optimized on upload |
 
 ### 3.3 Billing & metering
@@ -209,6 +209,7 @@ debitUsage(ctx, meter, qty): Promise<Result<void, QuotaError>>     // wraps the 
 
 - Entitlements resolve from the `subscriptions` row (60 s cache); `status = past_due && now < grace_until` keeps the paid tier; past grace → resolved tier is `free` (downgrade, never deletion).
 - Model routing lives here too: `modelFor(ctx, task)` → Free: `claude-haiku-4-5`; Pro/Studio: `claude-sonnet-5`; Agency: `claude-opus-4-8` when the planner classifies the job complex, Sonnet otherwise (latency + cost).
+- Deploying is itself tiered. Every tier can publish to `{slug}.forgesites.app` (Free: its 1 site, badge on — the 60-second demo loop stays intact). **Custom domains are a paid add-on on every tier, never bundled**: Pro+ workspaces attach a domain for $5/mo per domain (proposed — DECISIONS #21), billed as a quantity on a Stripe add-on subscription item and reconciled by the same `customer.subscription.updated` webhook as everything else. Self-deploy to their own infrastructure (export zip / GitHub push) rides the existing `codeExport` gate. A lapsed domain add-on detaches the hostname and the site falls back to its subdomain — a paying-then-lapsed customer's site never goes dark.
 - Commerce (`'commerce'`, Pro+): platform transaction fee applied as Stripe `application_fee_percent` — Pro 2%, Studio 1%, Agency 0% — plus product caps (50 / 500 / unlimited) and storage quotas (Free 200 MB / Pro 5 GB / Studio 20 GB / Agency 100 GB). Proposed numbers: DECISIONS #17.
 - Platform billing (our subscriptions — distinct from merchant payments, §9): Stripe Checkout for purchase, Customer Portal for management, annual prices at 10× monthly (2 months free). Webhooks handled: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed` (sets `grace_until = now() + 3 days`). All idempotent via `stripe_events` (§3.3). Signature verified before parsing.
 
@@ -311,7 +312,8 @@ Dashboard: order list, order detail, refund, fulfillment status. Merchant-scoped
 ## 11. Publishing & domains
 
 - Publish = set `sites.published_version_id`, write a `deployments` row, `revalidateTag('site:{id}')`. Rollback = point at an older version. Sub-second, no build step — the renderer is already deployed.
-- Subdomains: wildcard `*.forgesites.app`. Custom domains (Pro+): user adds hostname → we require a TXT verification token **before** attaching to the Vercel project (Domains API handles SSL). Unverified hostnames never serve — prevents domain-fronting/takeover.
+- Three deploy paths, by entitlement (§4): **(1) Forge-hosted subdomain** — every tier, `{slug}.forgesites.app`; **(2) Forge-hosted custom domain** — Pro+ eligibility **plus** the per-domain paid add-on; **(3) self-deploy** — export/GitHub push to the user's own infrastructure via the `codeExport` gate.
+- Subdomains: wildcard `*.forgesites.app`. Custom domains: purchase the add-on → add hostname → we require a TXT verification token **before** attaching to the Vercel project (Domains API handles SSL). Unverified hostnames never serve — prevents domain-fronting/takeover. Attach/detach syncs the add-on quantity on the Stripe subscription item; add-on lapse detaches the hostname and traffic falls back to the subdomain. Domain *registration* (buying the name itself) stays at the user's registrar in v1 — we connect domains, we don't sell them (DECISIONS #21).
 - SEO: per-page `SeoMeta` → metadata API; `sitemap.xml` + `robots.txt` generated per site; OG images rendered from the hero via `@vercel/og`.
 - The free-tier badge is rendered server-side in the published output and its removal is entitlement-gated server-side (not a CSS class someone can delete).
 

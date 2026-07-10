@@ -84,10 +84,14 @@ Judgment calls, with rationale, in ADR style. Items marked **⚠ disagreement** 
 
 **Status: proposed.** Commerce makes email load-bearing now (order confirmations, merchant notifications), and contact forms + agent mode ("wire the contact form to my email") already needed it. One provider behind a thin `sendEmail()` interface, env-keyed. Resend chosen for DX and React-based templates; the interface makes any ESP a one-file swap.
 
+### 21. Custom domains are a paid add-on; deploying is tiered — added at Phase 0 by owner request
+
+**Status: proposed.** Deploy options by subscription: every tier publishes to a `{slug}.forgesites.app` subdomain (Free keeps its one badged site — the "live in 60 seconds" demo loop is the top of the funnel and we don't break it); self-deploy (export / GitHub push) rides the existing `codeExport` gate on Pro+. **Custom domains are never bundled into a tier** — connecting one is a per-domain paid add-on ($5/mo or $50/yr, proposed), Pro+ eligible, billed as a quantity on a Stripe add-on subscription item so proration, invoicing, and dunning are all Stripe's problem, and reconciled through the same idempotent webhook path as the base subscription. Rationale: per-domain pricing tracks per-domain cost and support burden, prevents domain hoarding on flat tiers, and keeps base tier prices honest. Failure mode is deliberately gentle: a lapsed add-on detaches the hostname and the site falls back to its subdomain — a customer who stops paying for a domain never gets a dark site. Domain *registration* (selling the name itself) is out of v1 scope; a registrar-reseller integration is a clean later upsell. If Free should lose subdomain publishing too (preview-only), say so at sign-off — it's a one-line entitlement change.
+
 ---
 
 ## Open question for sign-off (the one that changes architecture)
 
 **Decision #2** — confirm multi-tenant serving over per-site Vercel projects. Everything in Phase 5 (publish, domains, rollback) is built on it. Silence at sign-off = proceed as proposed.
 
-(Decision #17's fee percentages and caps are also flagged, but they're pricing, not architecture — env-configurable and changeable at any time.)
+(Decision #17's fee percentages and caps and #21's domain add-on price are also flagged, but they're pricing, not architecture — env-configurable and changeable at any time.)
