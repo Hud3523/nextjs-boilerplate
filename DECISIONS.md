@@ -10,7 +10,7 @@ Judgment calls, with rationale, in ADR style. Items marked **⚠ disagreement** 
 
 ### 2. Published sites are served multi-tenant, not one Vercel project per site — ⚠ disagreement (interpretation)
 
-**Status: proposed — the one decision most worth confirming at sign-off.** The spec says "Deploy target for user sites: Vercel API + custom domain provisioning," which could be read as provisioning a Vercel *project per user site*. We won't do that: per-site projects mean per-publish builds (minutes, not sub-second), thousands of projects to babysit, API rate limits, and marginal cost per free user. Instead, one renderer serves all published sites via Host-header routing (`ARCHITECTURE.md` §1, §10); the Vercel API is used for what it's genuinely good at — **custom domain attachment and SSL issuance** on our single project. Publish becomes a pointer swap + cache invalidation: instant, free, rollbackable. Users who want their own infrastructure have a better answer than a Vercel project we manage: **code export** (their repo, their account — the trust anchor per the spec).
+**Status: proposed — the one decision most worth confirming at sign-off.** The spec says "Deploy target for user sites: Vercel API + custom domain provisioning," which could be read as provisioning a Vercel *project per user site*. We won't do that: per-site projects mean per-publish builds (minutes, not sub-second), thousands of projects to babysit, API rate limits, and marginal cost per free user. Instead, one renderer serves all published sites via Host-header routing (`ARCHITECTURE.md` §1, §11); the Vercel API is used for what it's genuinely good at — **custom domain attachment and SSL issuance** on our single project. Publish becomes a pointer swap + cache invalidation: instant, free, rollbackable. Users who want their own infrastructure have a better answer than a Vercel project we manage: **code export** (their repo, their account — the trust anchor per the spec).
 
 ### 3. Marketplace blocks are schema compositions, never code — security-critical
 
@@ -50,7 +50,7 @@ Judgment calls, with rationale, in ADR style. Items marked **⚠ disagreement** 
 
 ### 12. One Next.js app, four workspace packages
 
-**Status: proposed.** `apps/web` serves builder + published sites + marketing (route groups + host middleware). Splitting deployments now would triple config for zero isolation benefit at current scale. `packages/schema` / `blocks` / `export` / `config` are real packages because export copies block sources verbatim into user repos (`ARCHITECTURE.md` §9) — the package boundary *is* the export boundary. Split the renderer into its own deployment only when traffic isolation demands it.
+**Status: proposed.** `apps/web` serves builder + published sites + marketing (route groups + host middleware). Splitting deployments now would triple config for zero isolation benefit at current scale. `packages/schema` / `blocks` / `export` / `config` are real packages because export copies block sources verbatim into user repos (`ARCHITECTURE.md` §10) — the package boundary *is* the export boundary. Split the renderer into its own deployment only when traffic isolation demands it.
 
 ### 13. Undo is an editor patch stack; versions are commits
 
@@ -60,8 +60,34 @@ Judgment calls, with rationale, in ADR style. Items marked **⚠ disagreement** 
 
 **Status: proposed.** Haiku generates from the same registry, same token brain, same validation, same repair loop — the floor on output quality is structural, not model-dependent. Free limits are quantity (1 site, 10 generations, badge, no export), never a degraded renderer. The upgrade moment should be "I want more of this," not "I want it to stop being bad."
 
+### 15. Merchant payments: Stripe Connect Express, direct charges — added at Phase 0 by owner request
+
+**Status: proposed.** Commerce ("like Shopify — the AI builds the site with payments connected") is in scope as `ARCHITECTURE.md` §9. Money moves via Connect Express accounts with **direct charges** on the merchant's account plus a platform application fee. Rationale: we never hold funds (no money-transmitter exposure), never see card data (PCI stays SAQ-A via Stripe-hosted checkout), and Stripe owns KYC, fraud, disputes, and payouts. The rejected alternative — platform as merchant of record with manual payouts — is a compliance program disguised as a feature. Bonus: Connect's hosted KYC means "AI connects payments" is structurally human-approved; generation scaffolds the store and deep-links into onboarding, and buy buttons stay disabled until it completes.
+
+### 16. Commerce v1 is deliberately Shopify-*lite*
+
+**Status: proposed.** v1: physical + digital products, simple variants (≤ 2 option dimensions), flat/free shipping, optional Stripe Tax, Stripe-hosted checkout. Explicitly not v1: multi-currency, shipping-rate engines, POS, fulfillment/3PL integrations, subscription products. Shopify's moat is logistics depth; ours is generation speed plus code ownership — we sell "your store is live in a minute and the code is yours," not warehouse management. Hosted checkout can be swapped for embedded on-site checkout later with zero schema changes.
+
+### 17. Commerce pricing levers (proposal, not architecture)
+
+**Status: proposed.** Commerce requires Pro+. Platform transaction fee: Pro 2%, Studio 1%, Agency 0% (on top of Stripe's own fees). Product caps: 50 / 500 / unlimited. Storage quotas: Free 200 MB, Pro 5 GB, Studio 20 GB, Agency 100 GB. These are product/pricing decisions wearing config clothes — they live in env with the price IDs and can change any time without a deploy. Flag disagreement at sign-off; silence ships these numbers.
+
+### 18. Assets: drop-anywhere uploads through one sanitizing pipeline
+
+**Status: proposed.** Files and photos can be dragged onto the canvas (or pasted) and land in the schema where they're dropped — image slot fills, gallery appends. One pipeline handles every upload: client-side downscale → server renditions (AVIF/WebP + blurhash) → Supabase Storage, with MIME sniffing (extensions are lies), server-side SVG sanitization (an unsanitized SVG is an XSS payload with a file extension), 25 MB/file cap, per-tier quotas, and required alt text that feeds the a11y guardrails. Because blocks reference `assetId`s rather than URLs, export can rewrite them to local files in the generated repo.
+
+### 19. The whole page is editable — no locked regions
+
+**Status: proposed.** Owner request made explicit: every visible element traces to a schema prop the user can edit — inline text editing on the canvas, drag-to-reorder, insert/duplicate/delete on every node, all flowing through the same Zod validation as AI mutations (one write path, not two). The single exception is the Free-tier badge, which is enforced server-side. Note on Rule 3 ("no localStorage for anything that must survive"): the visitor cart uses localStorage as a *non-authoritative convenience* — losing it loses nothing but a shopping list, and the server re-derives all prices at checkout (`ARCHITECTURE.md` §9.2). The rule is intact where it matters.
+
+### 20. Transactional email: Resend
+
+**Status: proposed.** Commerce makes email load-bearing now (order confirmations, merchant notifications), and contact forms + agent mode ("wire the contact form to my email") already needed it. One provider behind a thin `sendEmail()` interface, env-keyed. Resend chosen for DX and React-based templates; the interface makes any ESP a one-file swap.
+
 ---
 
 ## Open question for sign-off (the one that changes architecture)
 
 **Decision #2** — confirm multi-tenant serving over per-site Vercel projects. Everything in Phase 5 (publish, domains, rollback) is built on it. Silence at sign-off = proceed as proposed.
+
+(Decision #17's fee percentages and caps are also flagged, but they're pricing, not architecture — env-configurable and changeable at any time.)
