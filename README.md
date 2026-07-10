@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Forge Sites
 
-## Getting Started
+An AI website builder: describe a business in plain English, get a live,
+editable, deployed site in under 60 seconds — built on real, exportable,
+component-based code the user keeps.
 
-First, run the development server:
+Start with [ARCHITECTURE.md](./ARCHITECTURE.md) (system design) and
+[DECISIONS.md](./DECISIONS.md) (every judgment call, ADR-style).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Layout
+
+```
+apps/web/          Next.js app: builder, published-site renderer, marketing
+packages/config/   Shared tsconfig
+packages/schema/   Site Schema — Zod types, design tokens, migrations   (Phase 2)
+packages/blocks/   Block registry + component library                    (Phase 2)
+packages/export/   Schema → standalone Next.js repo compiler             (Phase 5)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+cp apps/web/.env.example apps/web/.env.local   # fill in (see below)
+pnpm --filter @forge/web db:migrate            # apply migrations to your database
+pnpm dev                                       # http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Environment is validated with Zod at boot (`apps/web/lib/env/schema.ts`):
+production refuses to start when anything is missing; development warns and
+runs whatever doesn't need the missing service.
 
-## Learn More
+Services to provision (all free-tier friendly):
 
-To learn more about Next.js, take a look at the following resources:
+1. **Supabase** — project URL + anon key + service-role key + Postgres URL.
+   Enable Google/GitHub OAuth and email magic links in Auth settings.
+2. **Stripe** — create the six subscription prices (Pro/Studio/Agency ×
+   monthly/annual) and the credit-pack price; paste the IDs into env. Point a
+   webhook at `/api/stripe/webhook` with the events listed in
+   `lib/stripe/handlers.ts`.
+3. **Upstash Redis** — REST URL + token (optional in dev; limiter fails open).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Commands
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| command | what |
+|---|---|
+| `pnpm dev` | run the app |
+| `pnpm lint` / `pnpm typecheck` | static checks |
+| `pnpm test` | unit tests (Vitest) |
+| `pnpm e2e` | Playwright, incl. the cross-tenant RLS proof (needs env) |
+| `pnpm --filter @forge/web db:generate` | new migration from schema changes |
+| `pnpm --filter @forge/web db:migrate` | apply migrations |
 
-## Deploy on Vercel
+## Status
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Phase 1 (auth, tenancy, RLS, Stripe billing, usage metering) — done.
+Phase 2 (Site Schema + block library + Lighthouse gate) — next.

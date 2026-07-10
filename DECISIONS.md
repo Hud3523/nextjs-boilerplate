@@ -88,6 +88,10 @@ Judgment calls, with rationale, in ADR style. Items marked **⚠ disagreement** 
 
 **Status: proposed.** Deploy options by subscription: every tier publishes to a `{slug}.forgesites.app` subdomain (Free keeps its one badged site — the "live in 60 seconds" demo loop is the top of the funnel and we don't break it); self-deploy (export / GitHub push) rides the existing `codeExport` gate on Pro+. **Custom domains are never bundled into a tier** — connecting one is a per-domain paid add-on ($5/mo or $50/yr, proposed), Pro+ eligible, billed as a quantity on a Stripe add-on subscription item so proration, invoicing, and dunning are all Stripe's problem, and reconciled through the same idempotent webhook path as the base subscription. Rationale: per-domain pricing tracks per-domain cost and support burden, prevents domain hoarding on flat tiers, and keeps base tier prices honest. Failure mode is deliberately gentle: a lapsed add-on detaches the hostname and the site falls back to its subdomain — a customer who stops paying for a domain never gets a dark site. Domain *registration* (selling the name itself) is out of v1 scope; a registrar-reseller integration is a clean later upsell. If Free should lose subdomain publishing too (preview-only), say so at sign-off — it's a one-line entitlement change.
 
+### 22. Usage periods are calendar months (UTC) — Phase 1 implementation note
+
+**Status: shipped in Phase 1.** Quota counters reset on the 1st of each month UTC rather than on each subscription's billing anniversary. One counter row per (workspace, meter, month), no per-workspace period bookkeeping, and the debit function stays a single row lock. The mismatch (a user who upgrades mid-month gets a fresh quota sooner than a purist would like) is economically negligible and invisible to most users; revisit only if annual-plan customers notice. Credits never expire and live outside the period entirely.
+
 ---
 
 ## Open question for sign-off (the one that changes architecture)
