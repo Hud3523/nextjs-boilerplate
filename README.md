@@ -51,6 +51,22 @@ Services to provision (all free-tier friendly):
 | `pnpm --filter @forge/web db:generate` | new migration from schema changes |
 | `pnpm --filter @forge/web db:migrate` | apply migrations |
 
+## Deploying (Vercel)
+
+Two options:
+
+- **Root Directory** (recommended): in the Vercel project settings set
+  *Root Directory* to `apps/web`. Vercel detects the pnpm workspace and
+  installs from the repo root automatically.
+- **Repo root**: the committed `vercel.json` builds `@forge/web` from the
+  monorepo root with no settings changes.
+
+A deploy with **no** environment variables runs in *setup mode*: the landing
+and login pages serve with a "not configured" notice, and nothing else works.
+Set the variables from `apps/web/.env.example` in the Vercel project (a
+*partially* configured production deploy fails fast at boot by design), then
+redeploy.
+
 ## Status
 
 Phase 1 (auth, tenancy, RLS, Stripe billing, usage metering) — done.

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { validateServerEnv, type ServerEnv } from "./schema";
+import { configuredKeyCount, validateServerEnv, type ServerEnv } from "./schema";
 
 let cached: ServerEnv | null = null;
 
@@ -33,6 +33,19 @@ export function assertServerEnv(opts: { throwOnMissing: boolean }): void {
     cached = result.env;
     return;
   }
+
+  // Fresh deploy with nothing configured: setup mode. Static pages serve;
+  // anything touching a backing service fails loudly on use. A *partially*
+  // configured production environment is a real misconfiguration and still
+  // fails fast below.
+  if (configuredKeyCount(process.env) === 0) {
+    console.warn(
+      "[env] No Forge Sites environment configured — running in setup mode. " +
+        "Copy apps/web/.env.example and set the variables to enable auth, billing, and generation.",
+    );
+    return;
+  }
+
   const message = `[env] Missing/invalid server environment: ${result.missing.join(", ")}`;
   if (opts.throwOnMissing) throw new Error(message);
   console.warn(`${message} — features touching those services will fail until configured.`);

@@ -57,6 +57,28 @@ export type EnvValidation =
   | { ok: true; env: ServerEnv }
   | { ok: false; missing: string[] };
 
+/** Keys that are always present or defaulted — they don't signal intent to configure. */
+const ALWAYS_PRESENT_KEYS: ReadonlySet<string> = new Set([
+  "NODE_ENV",
+  "APP_URL",
+  "CREDIT_PACK_UNITS",
+  "MODEL_FREE",
+  "MODEL_STANDARD",
+  "MODEL_COMPLEX",
+]);
+
+/**
+ * How many Forge-specific env vars are actually set. Zero means a fresh,
+ * intentionally-unconfigured deploy ("setup mode": serve static pages, warn
+ * loudly). One or more with failing validation means a genuine
+ * misconfiguration — production must fail fast on that.
+ */
+export function configuredKeyCount(raw: Record<string, string | undefined>): number {
+  return Object.keys(serverEnvSchema.shape).filter(
+    (key) => !ALWAYS_PRESENT_KEYS.has(key) && (raw[key] ?? "") !== "",
+  ).length;
+}
+
 export function validateServerEnv(
   raw: Record<string, string | undefined>,
 ): EnvValidation {

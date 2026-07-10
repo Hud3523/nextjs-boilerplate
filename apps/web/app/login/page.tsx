@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { sendMagicLink, signInWithGitHub, signInWithGoogle } from "@/lib/auth/actions";
+import { validateServerEnv } from "@/lib/env/schema";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -21,6 +22,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const sent = params.sent === "1";
   const error = typeof params.error === "string" ? ERROR_MESSAGES[params.error] : undefined;
+  const configured = validateServerEnv(process.env).ok;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6">
@@ -34,6 +36,16 @@ export default async function LoginPage({
         </Link>
 
         <div className="rounded-xl border border-border bg-surface p-6">
+          {!configured ? (
+            <div
+              role="alert"
+              className="mb-6 rounded-lg border border-accent/40 bg-accent-soft px-4 py-3 text-sm text-accent-strong"
+            >
+              This deployment isn&apos;t configured yet — sign-in is disabled
+              until the environment variables are set (see{" "}
+              <code className="font-mono text-xs">apps/web/.env.example</code>).
+            </div>
+          ) : null}
           <h1 className="text-lg font-semibold tracking-tight">Sign in</h1>
           <p className="mt-1 text-sm text-muted">
             New here? Signing in creates your account.

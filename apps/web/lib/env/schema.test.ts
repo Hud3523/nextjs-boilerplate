@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateServerEnv } from "./schema";
+import { configuredKeyCount, validateServerEnv } from "./schema";
 
 const FULL_ENV: Record<string, string> = {
   NODE_ENV: "development",
@@ -65,5 +65,29 @@ describe("validateServerEnv", () => {
   it("rejects malformed URLs", () => {
     const result = validateServerEnv({ ...FULL_ENV, NEXT_PUBLIC_SUPABASE_URL: "not-a-url" });
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("configuredKeyCount (setup-mode detection)", () => {
+  it("is zero for a fresh deploy — even with NODE_ENV and defaulted keys present", () => {
+    expect(configuredKeyCount({})).toBe(0);
+    expect(
+      configuredKeyCount({
+        NODE_ENV: "production",
+        APP_URL: "https://example.com",
+        MODEL_FREE: "claude-haiku-4-5",
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+      }),
+    ).toBe(0);
+  });
+
+  it("counts any real service variable, so partial config still fails fast", () => {
+    expect(configuredKeyCount({ DATABASE_URL: "postgres://x" })).toBe(1);
+    expect(configuredKeyCount({ STRIPE_SECRET_KEY: "sk_test_x", DATABASE_URL: "postgres://x" })).toBe(2);
+  });
+
+  it("treats empty strings as unset", () => {
+    expect(configuredKeyCount({ DATABASE_URL: "" })).toBe(0);
   });
 });
